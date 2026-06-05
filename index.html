@@ -7,224 +7,218 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
-<style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: system-ui, -apple-system, sans-serif; }
-</style>
+<style>* { margin:0; padding:0; box-sizing:border-box; } body { font-family:system-ui,-apple-system,sans-serif; }</style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel" data-presets="react">
 
-const uid = () => Math.random().toString(36).slice(2, 9);
+const uid = () => Math.random().toString(36).slice(2,9);
 const todayStr = () => new Date().toISOString().split("T")[0];
-const fmtDate = d => d ? new Date(d + "T00:00").toLocaleDateString("en-US", { month:"short", day:"numeric", year:"numeric" }) : "—";
-const fmtDT = ts => new Date(ts).toLocaleString("en-US", { month:"short", day:"numeric", hour:"2-digit", minute:"2-digit" });
-const addDays = (d, n) => { const dt = new Date(d + "T00:00"); dt.setDate(dt.getDate() + n); return dt.toISOString().split("T")[0]; };
-const calcAge = dob => dob ? Math.floor((new Date() - new Date(dob)) / 31557600000) : "";
+const fmtDate = d => d ? new Date(d+"T00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) : "—";
+const fmtDT = ts => new Date(ts).toLocaleString("en-US",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"});
+const addDays = (d,n) => { const dt=new Date(d+"T00:00"); dt.setDate(dt.getDate()+n); return dt.toISOString().split("T")[0]; };
+const calcAge = dob => dob ? Math.floor((new Date()-new Date(dob))/31557600000) : "";
 
 const PIPELINE = ["Inquiry","Medical Review","Hospital Contacted","Quotation Received","Patient Confirmed","Visa Processing","Travel Ready","Arrived","In Treatment","Aftercare","Completed","Cancelled"];
-const PIPELINE_C = { Inquiry:"#f59e0b","Medical Review":"#f97316","Hospital Contacted":"#8b5cf6","Quotation Received":"#3b82f6","Patient Confirmed":"#06b6d4","Visa Processing":"#a78bfa","Travel Ready":"#0ea5e9",Arrived:"#ec4899","In Treatment":"#e11d48",Aftercare:"#f59e0b",Completed:"#10b981",Cancelled:"#ef4444" };
+const PIPELINE_C = {Inquiry:"#f59e0b","Medical Review":"#f97316","Hospital Contacted":"#8b5cf6","Quotation Received":"#3b82f6","Patient Confirmed":"#06b6d4","Visa Processing":"#a78bfa","Travel Ready":"#0ea5e9",Arrived:"#ec4899","In Treatment":"#e11d48",Aftercare:"#f59e0b",Completed:"#10b981",Cancelled:"#ef4444"};
 const PRIORITY = ["🔴 Urgent","🟡 Medium","🟢 Normal"];
-const PRIORITY_C = { "🔴 Urgent":"#ef4444","🟡 Medium":"#f59e0b","🟢 Normal":"#10b981" };
+const PRIORITY_C = {"🔴 Urgent":"#ef4444","🟡 Medium":"#f59e0b","🟢 Normal":"#10b981"};
 const LEAD_SOURCES = ["Facebook","TikTok","Google Ads","Website Form","Phone","WhatsApp","KakaoTalk","Referral","Walk-in"];
 const TREATMENT_TAGS = ["Eye Surgery","Plastic Surgery","Oncology","Cardiology","Orthopedics","Fertility / IVF","Dental","Dermatology","Neurology","General Surgery","Spine","Urology"];
-const SPECIALTIES = ["Eye Surgery","Plastic Surgery","Oncology","Cardiology","Orthopedics","Fertility / IVF","Dental","Dermatology","Neurology","General Surgery","Spine","Urology","Gastroenterology","ENT","Pediatrics"];
 const COMM_CHANNELS = ["Facebook Messenger","WhatsApp","KakaoTalk","Phone Call","Email","In-Person"];
 const COORDINATORS = ["Unassigned","Enkh-Amar B.","Solongo T.","Tulgaa D.","Namuun O.","Bayarmaa G."];
 const LANGUAGES = ["Mongolian","English","Korean","Russian","Chinese"];
 const VISA_ST = ["Not Applied","Applied","Approved","Denied","Not Required"];
 const TRANSFER = ["Not Required","Airport Pickup","Airport Sendoff","Both"];
 const INV_ST = ["Draft","Sent","Partially Paid","Paid","Overdue","Cancelled"];
-const INV_C = { Draft:"#94a3b8",Sent:"#3b82f6","Partially Paid":"#f59e0b",Paid:"#10b981",Overdue:"#ef4444",Cancelled:"#64748b" };
-const TIER_C = { Premium:"#f59e0b",Standard:"#3b82f6",Partner:"#10b981" };
+const INV_C = {Draft:"#94a3b8",Sent:"#3b82f6","Partially Paid":"#f59e0b",Paid:"#10b981",Overdue:"#ef4444",Cancelled:"#64748b"};
+const TIER_C = {Premium:"#f59e0b",Standard:"#3b82f6",Partner:"#10b981"};
 const AFTERCARE_SCHEDULE = ["1 Week","1 Month","3 Months","6 Months"];
 const TABS = ["Dashboard","Leads","Patients","Pipeline","Hospitals","Communications","Travel","Finance","Reports"];
-const ICONS = { Dashboard:"▦",Leads:"◎",Patients:"◑",Pipeline:"▤",Hospitals:"✦",Communications:"◉",Travel:"▷",Finance:"◇",Reports:"▣" };
+const ICONS = {Dashboard:"▦",Leads:"◎",Patients:"◑",Pipeline:"▤",Hospitals:"✦",Communications:"◉",Travel:"▷",Finance:"◇",Reports:"▣"};
 
 const SEED_H = [
-  { id:"h1", name:"분당서울대학교병원", city:"Bundang", tier:"Premium", specialties:["Cardiology","Oncology","Neurology","General Surgery"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
-  { id:"h2", name:"세종병원", city:"Seoul", tier:"Standard", specialties:["Cardiology","General Surgery"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
-  { id:"h3", name:"중앙대학교병원", city:"Seoul", tier:"Standard", specialties:["Oncology","General Surgery","Orthopedics"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
-  { id:"h4", name:"고려대학교 안암병원", city:"Seoul", tier:"Premium", specialties:["Neurology","Oncology","General Surgery"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
-  { id:"h5", name:"차의과학대학교 분당차병원", city:"Bundang", tier:"Standard", specialties:["Fertility / IVF","Oncology","Pediatrics"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
-  { id:"h6", name:"명지병원", city:"Seoul", tier:"Standard", specialties:["General Surgery","Cardiology","Orthopedics"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
-  { id:"h7", name:"순천향대학교 서울병원", city:"Seoul", tier:"Standard", specialties:["General Surgery","Oncology","Neurology"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
-  { id:"h8", name:"순천향대학교 부천병원", city:"Bucheon", tier:"Standard", specialties:["General Surgery","Cardiology","Orthopedics"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
-  { id:"h9", name:"서울아산병원", city:"Seoul", tier:"Premium", specialties:["Oncology","Cardiology","General Surgery","Liver Transplant"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
-  { id:"h10", name:"가톨릭대학교 서울성모병원", city:"Seoul", tier:"Premium", specialties:["Oncology","Fertility / IVF","Hematology"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
-  { id:"h11", name:"마리아병원", city:"Seoul", tier:"Standard", specialties:["Fertility / IVF","Obstetrics & Gynecology"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
-  { id:"h12", name:"미즈메디병원", city:"Seoul", tier:"Standard", specialties:["Fertility / IVF","Obstetrics & Gynecology"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
-  { id:"h13", name:"한양대학교병원", city:"Seoul", tier:"Premium", specialties:["Cardiology","Neurology","Oncology","Orthopedics"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
-  { id:"h14", name:"강남그랜드안과", city:"Seoul", tier:"Standard", specialties:["Eye Surgery"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
-  { id:"h15", name:"성무진안과", city:"Seoul", tier:"Standard", specialties:["Eye Surgery"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
-  { id:"h16", name:"연세세브란스병원", city:"Seoul", tier:"Premium", specialties:["Cardiology","Oncology","Neurology","Spine"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
-  { id:"h17", name:"양지병원", city:"Seoul", tier:"Standard", specialties:["General Surgery","Orthopedics","Dermatology"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
-  { id:"h18", name:"한림대학교 강남성심병원", city:"Seoul", tier:"Standard", specialties:["Cardiology","General Surgery","Neurology"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
-  { id:"h19", name:"엘리트성형외과", city:"Seoul", tier:"Standard", specialties:["Plastic Surgery","Dermatology"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
-  { id:"h20", name:"WOOA성형외과", city:"Seoul", tier:"Standard", specialties:["Plastic Surgery","Dermatology"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
-  { id:"h21", name:"이엔장성형외과", city:"Seoul", tier:"Standard", specialties:["Plastic Surgery","Dermatology"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
-  { id:"h22", name:"SNU안과", city:"Seoul", tier:"Standard", specialties:["Eye Surgery"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
-  { id:"h23", name:"트리니티여성병원", city:"Seoul", tier:"Standard", specialties:["Obstetrics & Gynecology","Fertility / IVF"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
+  {id:"h1",name:"분당서울대학교병원",city:"Bundang",tier:"Premium",specialties:["Cardiology","Oncology","Neurology","General Surgery"],contactName:"",contactEmail:"",contactPhone:"",active:true,basePrice:0},
+  {id:"h2",name:"세종병원",city:"Seoul",tier:"Standard",specialties:["Cardiology","General Surgery"],contactName:"",contactEmail:"",contactPhone:"",active:true,basePrice:0},
+  {id:"h3",name:"중앙대학교병원",city:"Seoul",tier:"Standard",specialties:["Oncology","General Surgery","Orthopedics"],contactName:"",contactEmail:"",contactPhone:"",active:true,basePrice:0},
+  {id:"h4",name:"고려대학교 안암병원",city:"Seoul",tier:"Premium",specialties:["Neurology","Oncology","General Surgery"],contactName:"",contactEmail:"",contactPhone:"",active:true,basePrice:0},
+  {id:"h5",name:"차의과학대학교 분당차병원",city:"Bundang",tier:"Standard",specialties:["Fertility / IVF","Oncology","Pediatrics"],contactName:"",contactEmail:"",contactPhone:"",active:true,basePrice:0},
+  {id:"h6",name:"명지병원",city:"Seoul",tier:"Standard",specialties:["General Surgery","Cardiology","Orthopedics"],contactName:"",contactEmail:"",contactPhone:"",active:true,basePrice:0},
+  {id:"h7",name:"순천향대학교 서울병원",city:"Seoul",tier:"Standard",specialties:["General Surgery","Oncology","Neurology"],contactName:"",contactEmail:"",contactPhone:"",active:true,basePrice:0},
+  {id:"h8",name:"순천향대학교 부천병원",city:"Bucheon",tier:"Standard",specialties:["General Surgery","Cardiology","Orthopedics"],contactName:"",contactEmail:"",contactPhone:"",active:true,basePrice:0},
+  {id:"h9",name:"서울아산병원",city:"Seoul",tier:"Premium",specialties:["Oncology","Cardiology","General Surgery","Liver Transplant"],contactName:"",contactEmail:"",contactPhone:"",active:true,basePrice:0},
+  {id:"h10",name:"가톨릭대학교 서울성모병원",city:"Seoul",tier:"Premium",specialties:["Oncology","Fertility / IVF","Hematology"],contactName:"",contactEmail:"",contactPhone:"",active:true,basePrice:0},
+  {id:"h11",name:"마리아병원",city:"Seoul",tier:"Standard",specialties:["Fertility / IVF","Obstetrics & Gynecology"],contactName:"",contactEmail:"",contactPhone:"",active:true,basePrice:0},
+  {id:"h12",name:"미즈메디병원",city:"Seoul",tier:"Standard",specialties:["Fertility / IVF","Obstetrics & Gynecology"],contactName:"",contactEmail:"",contactPhone:"",active:true,basePrice:0},
+  {id:"h13",name:"한양대학교병원",city:"Seoul",tier:"Premium",specialties:["Cardiology","Neurology","Oncology","Orthopedics"],contactName:"",contactEmail:"",contactPhone:"",active:true,basePrice:0},
+  {id:"h14",name:"강남그랜드안과",city:"Seoul",tier:"Standard",specialties:["Eye Surgery"],contactName:"",contactEmail:"",contactPhone:"",active:true,basePrice:0},
+  {id:"h15",name:"성무진안과",city:"Seoul",tier:"Standard",specialties:["Eye Surgery"],contactName:"",contactEmail:"",contactPhone:"",active:true,basePrice:0},
+  {id:"h16",name:"연세세브란스병원",city:"Seoul",tier:"Premium",specialties:["Cardiology","Oncology","Neurology","Spine"],contactName:"",contactEmail:"",contactPhone:"",active:true,basePrice:0},
+  {id:"h17",name:"양지병원",city:"Seoul",tier:"Standard",specialties:["General Surgery","Orthopedics","Dermatology"],contactName:"",contactEmail:"",contactPhone:"",active:true,basePrice:0},
+  {id:"h18",name:"한림대학교 강남성심병원",city:"Seoul",tier:"Standard",specialties:["Cardiology","General Surgery","Neurology"],contactName:"",contactEmail:"",contactPhone:"",active:true,basePrice:0},
+  {id:"h19",name:"엘리트성형외과",city:"Seoul",tier:"Standard",specialties:["Plastic Surgery","Dermatology"],contactName:"",contactEmail:"",contactPhone:"",active:true,basePrice:0},
+  {id:"h20",name:"WOOA성형외과",city:"Seoul",tier:"Standard",specialties:["Plastic Surgery","Dermatology"],contactName:"",contactEmail:"",contactPhone:"",active:true,basePrice:0},
+  {id:"h21",name:"이엔장성형외과",city:"Seoul",tier:"Standard",specialties:["Plastic Surgery","Dermatology"],contactName:"",contactEmail:"",contactPhone:"",active:true,basePrice:0},
+  {id:"h22",name:"SNU안과",city:"Seoul",tier:"Standard",specialties:["Eye Surgery"],contactName:"",contactEmail:"",contactPhone:"",active:true,basePrice:0},
+  {id:"h23",name:"트리니티여성병원",city:"Seoul",tier:"Standard",specialties:["Obstetrics & Gynecology","Fertility / IVF"],contactName:"",contactEmail:"",contactPhone:"",active:true,basePrice:0},
 ];
 
-// Storage
 const LS = {
-  get: k => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch { return null; } },
-  set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+  get: k => { try { const v=localStorage.getItem(k); return v?JSON.parse(v):null; } catch { return null; } },
+  set: (k,v) => { try { localStorage.setItem(k,JSON.stringify(v)); } catch {} }
 };
-const STORE = { h:"gmt7_h", p:"gmt7_p", l:"gmt7_l", c:"gmt7_c", inv:"gmt7_inv", ac:"gmt7_ac" };
+const STORE = {h:"gmt8_h",p:"gmt8_p",l:"gmt8_l",c:"gmt8_c",inv:"gmt8_inv",ac:"gmt8_ac"};
 
-const BG="#f8f9fc", SURF="#ffffff", SURF2="#f1f5f9", BOR="#e2e8f0", TXT="#0f172a", TXT2="#64748b", TXT3="#94a3b8", BRAND="#2563eb", BRAND_L="#eff6ff", BRAND_M="#bfdbfe", SIDEBAR="#0f172a";
-const inp = { width:"100%",background:SURF,border:"1px solid "+BOR,borderRadius:8,padding:"9px 12px",color:TXT,fontSize:13,outline:"none",boxSizing:"border-box" };
-const sel = { width:"100%",background:SURF,border:"1px solid "+BOR,borderRadius:8,padding:"9px 12px",color:TXT,fontSize:13,outline:"none",boxSizing:"border-box" };
-const td0 = { padding:"10px 12px",borderBottom:"1px solid "+BOR,fontSize:12,verticalAlign:"middle" };
-const G2 = { display:"grid",gridTemplateColumns:"1fr 1fr",gap:14 };
-const G3 = { display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:13 };
-const G4 = { display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:13 };
+const BG="#f8f9fc",SURF="#ffffff",SURF2="#f1f5f9",BOR="#e2e8f0",TXT="#0f172a",TXT2="#64748b",TXT3="#94a3b8",BRAND="#2563eb",BRAND_L="#eff6ff",BRAND_M="#bfdbfe",SIDEBAR="#0f172a";
+const inp={width:"100%",background:SURF,border:"1px solid "+BOR,borderRadius:8,padding:"9px 12px",color:TXT,fontSize:13,outline:"none",boxSizing:"border-box"};
+const sel={width:"100%",background:SURF,border:"1px solid "+BOR,borderRadius:8,padding:"9px 12px",color:TXT,fontSize:13,outline:"none",boxSizing:"border-box"};
+const td0={padding:"10px 12px",borderBottom:"1px solid "+BOR,fontSize:12,verticalAlign:"middle"};
+const G2={display:"grid",gridTemplateColumns:"1fr 1fr",gap:14};
+const G3={display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:13};
+const G4={display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:13};
 
-const Btn = ({ v, onClick, children, disabled }) => {
-  const base = { border:"none",borderRadius:8,padding:"9px 18px",fontSize:13,fontWeight:600,cursor:"pointer",opacity:disabled?0.6:1 };
-  const styles = { primary:{...base,background:BRAND,color:"#fff"}, success:{...base,background:"#059669",color:"#fff"}, danger:{...base,background:"#dc2626",color:"#fff"}, outline:{...base,background:SURF,color:TXT,border:"1px solid "+BOR} };
-  return React.createElement("button", {style:styles[v]||styles.primary, onClick, disabled}, children);
+const Btn=({v,onClick,children,disabled})=>{
+  const base={border:"none",borderRadius:8,padding:"9px 18px",fontSize:13,fontWeight:600,cursor:"pointer",opacity:disabled?0.6:1};
+  const styles={primary:{...base,background:BRAND,color:"#fff"},success:{...base,background:"#059669",color:"#fff"},danger:{...base,background:"#dc2626",color:"#fff"},outline:{...base,background:SURF,color:TXT,border:"1px solid "+BOR}};
+  return <button style={styles[v]||styles.primary} onClick={onClick} disabled={disabled}>{children}</button>;
 };
-const BtnSm = ({ v, onClick, children }) => {
-  const styles = { danger:{background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca"}, success:{background:"#f0fdf4",color:"#059669",border:"1px solid #bbf7d0"}, primary:{background:BRAND_L,color:BRAND,border:"1px solid "+BRAND_M}, default:{background:SURF2,color:TXT2,border:"1px solid "+BOR} };
-  const s = styles[v]||styles.default;
-  return React.createElement("button", {style:{...s,borderRadius:6,padding:"4px 10px",fontSize:11,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}, onClick}, children);
+const BtnSm=({v,onClick,children})=>{
+  const styles={danger:{background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca"},success:{background:"#f0fdf4",color:"#059669",border:"1px solid #bbf7d0"},primary:{background:BRAND_L,color:BRAND,border:"1px solid "+BRAND_M},default:{background:SURF2,color:TXT2,border:"1px solid "+BOR}};
+  const s=styles[v]||styles.default;
+  return <button style={{...s,borderRadius:6,padding:"4px 10px",fontSize:11,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}} onClick={onClick}>{children}</button>;
 };
-const Card = ({ children, p, style }) => React.createElement("div", {style:{background:SURF,border:"1px solid "+BOR,borderRadius:12,padding:p||16,...(style||{})}}, children);
-const Pill = ({ color, children }) => { const c=color||"#64748b"; return React.createElement("span", {style:{background:c+"18",color:c,border:"1px solid "+c+"30",borderRadius:20,padding:"3px 10px",fontSize:11,fontWeight:600,display:"inline-block",whiteSpace:"nowrap"}}, children); };
-const Tag = ({ color, children }) => { const c=color||BRAND; return React.createElement("span", {style:{background:c+"12",color:c,borderRadius:6,padding:"2px 8px",fontSize:11,fontWeight:500,display:"inline-block"}}, children); };
-const SH = ({ t }) => React.createElement("div", {style:{fontSize:11,fontWeight:700,color:TXT3,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:12,paddingBottom:8,borderBottom:"1px solid "+BOR}}, t);
-const IR = ({ label, val }) => { if(!val) return null; return React.createElement("div", {style:{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:"1px solid "+BOR}}, React.createElement("span",{style:{fontSize:12,color:TXT2}},label), React.createElement("span",{style:{fontSize:13,color:TXT,fontWeight:500,textAlign:"right",maxWidth:"60%"}},val)); };
-const FG = ({ label, children, mb }) => React.createElement("div", {style:{marginBottom:mb||13}}, React.createElement("label",{style:{display:"block",fontSize:11,fontWeight:600,color:TXT2,marginBottom:5}},label), children);
-const StatCard = ({ label, value, sub, color }) => { const c=color||BRAND; return React.createElement("div",{style:{background:SURF,border:"1px solid "+BOR,borderRadius:12,padding:"16px 18px",borderTop:"3px solid "+c}}, React.createElement("div",{style:{fontSize:22,fontWeight:700,color:TXT}},value), React.createElement("div",{style:{fontSize:13,color:TXT2,marginTop:4}},label), sub&&React.createElement("div",{style:{fontSize:11,color:c,marginTop:3,fontWeight:600}},sub)); };
+const Card=({children,p,style})=><div style={{background:SURF,border:"1px solid "+BOR,borderRadius:12,padding:p||16,...(style||{})}}>{children}</div>;
+const Pill=({color,children})=>{const c=color||"#64748b";return <span style={{background:c+"18",color:c,border:"1px solid "+c+"30",borderRadius:20,padding:"3px 10px",fontSize:11,fontWeight:600,display:"inline-block",whiteSpace:"nowrap"}}>{children}</span>;};
+const Tag=({color,children})=>{const c=color||BRAND;return <span style={{background:c+"12",color:c,borderRadius:6,padding:"2px 8px",fontSize:11,fontWeight:500,display:"inline-block"}}>{children}</span>;};
+const SH=({t})=><div style={{fontSize:11,fontWeight:700,color:TXT3,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:12,paddingBottom:8,borderBottom:"1px solid "+BOR}}>{t}</div>;
+const IR=({label,val})=>{if(!val)return null;return <div style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:"1px solid "+BOR}}><span style={{fontSize:12,color:TXT2}}>{label}</span><span style={{fontSize:13,color:TXT,fontWeight:500,textAlign:"right",maxWidth:"60%"}}>{val}</span></div>;};
+const FG=({label,children,mb})=><div style={{marginBottom:mb||13}}><label style={{display:"block",fontSize:11,fontWeight:600,color:TXT2,marginBottom:5}}>{label}</label>{children}</div>;
+const StatCard=({label,value,sub,color})=>{const c=color||BRAND;return <div style={{background:SURF,border:"1px solid "+BOR,borderRadius:12,padding:"16px 18px",borderTop:"3px solid "+c}}><div style={{fontSize:22,fontWeight:700,color:TXT}}>{value}</div><div style={{fontSize:13,color:TXT2,marginTop:4}}>{label}</div>{sub&&<div style={{fontSize:11,color:c,marginTop:3,fontWeight:600}}>{sub}</div>}</div>;};
 
-const emptyLead = { name:"",phone:"",age:"",source:"Facebook",treatmentTag:"Eye Surgery",priority:"🟡 Medium",language:"Mongolian",notes:"",coordinator:"Unassigned" };
-const emptyPat = { name:"",dob:"",age:"",gender:"Male",phone:"",sns:"",email:"",language:"Mongolian",interpreterNeeded:"No",coordinator:"Unassigned",referralDate:"",diagnosis:"",department:"",appointmentStatus:"",referralProgress:"",hospitalId:"",passportNo:"",passportExpiry:"",visaStatus:"Not Applied",visaExpiry:"",arrivalDate:"",departureDate:"",flightArr:"",hotelName:"",hotelCheckIn:"",hotelCheckOut:"",airportTransfer:"Not Required",treatmentTag:"",surgeryDate:"",treatmentNotes:"",status:"Inquiry" };
-const emptyInv = { patientId:"",items:[{desc:"Consultation Fee",qty:1,price:0}],status:"Draft",notes:"",dueDate:"" };
+const emptyLead={name:"",phone:"",age:"",source:"Facebook",treatmentTag:"Eye Surgery",priority:"🟡 Medium",language:"Mongolian",notes:"",coordinator:"Unassigned"};
+const emptyPat={name:"",dob:"",age:"",gender:"Male",phone:"",sns:"",email:"",language:"Mongolian",interpreterNeeded:"No",coordinator:"Unassigned",referralDate:"",diagnosis:"",department:"",appointmentStatus:"",referralProgress:"",hospitalId:"",passportNo:"",passportExpiry:"",visaStatus:"Not Applied",visaExpiry:"",arrivalDate:"",departureDate:"",flightArr:"",hotelName:"",hotelCheckIn:"",hotelCheckOut:"",airportTransfer:"Not Required",treatmentTag:"",surgeryDate:"",treatmentNotes:"",status:"Inquiry"};
+const emptyInv={patientId:"",items:[{desc:"Consultation Fee",qty:1,price:0}],status:"Draft",notes:"",dueDate:""};
+const emptyH2={name:"",city:"Seoul",tier:"Standard",specialties:[],contactName:"",contactEmail:"",contactPhone:"",basePrice:0,active:true};
 
 function App() {
-  const [tab, setTab] = React.useState("Dashboard");
-  const [hospitals, setHospitals] = React.useState([]);
-  const [patients, setPatients] = React.useState([]);
-  const [leads, setLeads] = React.useState([]);
-  const [comms, setComms] = React.useState([]);
-  const [invoices, setInvoices] = React.useState([]);
-  const [aftercare, setAftercare] = React.useState([]);
-  const [loading, setLoading] = React.useState(true);
-  const [toast, setToast] = React.useState(null);
-  const [search, setSearch] = React.useState("");
-  const [selPat, setSelPat] = React.useState(null);
-  const [editPat, setEditPat] = React.useState(null);
-  const [selHosp, setSelHosp] = React.useState(null);
-  const [pTab, setPTab] = React.useState("Info");
-  const [fStage, setFStage] = React.useState("All");
-  const [showForm, setShowForm] = React.useState(null);
-  const [invModal, setInvModal] = React.useState(null);
-  const [commText, setCommText] = React.useState("");
-  const [commChan, setCommChan] = React.useState("WhatsApp");
-  const [commTarget, setCommTarget] = React.useState("");
-  const [sortOrder, setSortOrder] = React.useState("desc");
-  const [lf, setLf] = React.useState(emptyLead);
-  const [pf, setPf] = React.useState(emptyPat);
-  const [invF, setInvF] = React.useState(emptyInv);
-  const fileRef = React.useRef();
-  const importRef = React.useRef();
-  const [showImport, setShowImport] = React.useState(false);
-  const [importHeaders, setImportHeaders] = React.useState([]);
-  const [importPreview, setImportPreview] = React.useState([]);
-  const [importCols, setImportCols] = React.useState({});
-  const [importStep, setImportStep] = React.useState(1);
+  const [tab,setTab]=React.useState("Dashboard");
+  const [hospitals,setHospitals]=React.useState([]);
+  const [patients,setPatients]=React.useState([]);
+  const [leads,setLeads]=React.useState([]);
+  const [comms,setComms]=React.useState([]);
+  const [invoices,setInvoices]=React.useState([]);
+  const [aftercare,setAftercare]=React.useState([]);
+  const [loading,setLoading]=React.useState(true);
+  const [toast,setToast]=React.useState(null);
+  const [search,setSearch]=React.useState("");
+  const [selPat,setSelPat]=React.useState(null);
+  const [editPat,setEditPat]=React.useState(null);
+  const [selHosp,setSelHosp]=React.useState(null);
+  const [pTab,setPTab]=React.useState("Info");
+  const [fStage,setFStage]=React.useState("All");
+  const [showForm,setShowForm]=React.useState(null);
+  const [showHospForm,setShowHospForm]=React.useState(false);
+  const [invModal,setInvModal]=React.useState(null);
+  const [commText,setCommText]=React.useState("");
+  const [commChan,setCommChan]=React.useState("WhatsApp");
+  const [commTarget,setCommTarget]=React.useState("");
+  const [sortOrder,setSortOrder]=React.useState("desc");
+  const [lf,setLf]=React.useState(emptyLead);
+  const [pf,setPf]=React.useState(emptyPat);
+  const [invF,setInvF]=React.useState(emptyInv);
+  const [hf,setHf]=React.useState(emptyH2);
+  const [showImport,setShowImport]=React.useState(false);
+  const [importStep,setImportStep]=React.useState(1);
+  const [importHeaders,setImportHeaders]=React.useState([]);
+  const [importPreview,setImportPreview]=React.useState([]);
+  const [importCols,setImportCols]=React.useState({});
+  const fileRef=React.useRef();
+  const importRef=React.useRef();
 
-  React.useEffect(() => {
-    const h = LS.get(STORE.h); const p = LS.get(STORE.p); const l = LS.get(STORE.l);
-    const c = LS.get(STORE.c); const inv = LS.get(STORE.inv); const ac = LS.get(STORE.ac);
-    setHospitals(h||SEED_H); if(!h) LS.set(STORE.h, SEED_H);
-    setPatients(p||[]); setLeads(l||[]); setComms(c||[]); setInvoices(inv||[]); setAftercare(ac||[]);
+  React.useEffect(()=>{
+    const h=LS.get(STORE.h);const p=LS.get(STORE.p);const l=LS.get(STORE.l);
+    const c=LS.get(STORE.c);const inv=LS.get(STORE.inv);const ac=LS.get(STORE.ac);
+    setHospitals(h||SEED_H);if(!h)LS.set(STORE.h,SEED_H);
+    setPatients(p||[]);setLeads(l||[]);setComms(c||[]);setInvoices(inv||[]);setAftercare(ac||[]);
     setLoading(false);
-  }, []);
+  },[]);
 
-  const toast_ = (msg, type) => { setToast({msg, type:type||"ok"}); setTimeout(()=>setToast(null), 3000); };
-  const saveH = d => { setHospitals(d); LS.set(STORE.h, d); };
-  const saveP = d => { setPatients(d); LS.set(STORE.p, d); };
-  const saveL = d => { setLeads(d); LS.set(STORE.l, d); };
-  const saveC = d => { setComms(d); LS.set(STORE.c, d); };
-  const saveInv = d => { setInvoices(d); LS.set(STORE.inv, d); };
-  const saveAC = d => { setAftercare(d); LS.set(STORE.ac, d); };
+  const toast_=(msg,type)=>{setToast({msg,type:type||"ok"});setTimeout(()=>setToast(null),3000);};
+  const saveH=d=>{setHospitals(d);LS.set(STORE.h,d);};
+  const saveP=d=>{setPatients(d);LS.set(STORE.p,d);};
+  const saveL=d=>{setLeads(d);LS.set(STORE.l,d);};
+  const saveC=d=>{setComms(d);LS.set(STORE.c,d);};
+  const saveInv=d=>{setInvoices(d);LS.set(STORE.inv,d);};
+  const saveAC=d=>{setAftercare(d);LS.set(STORE.ac,d);};
 
-  const addLead = () => {
-    if(!lf.name||!lf.phone) return toast_("Нэр болон утас заавал!","err");
+  const addLead=()=>{
+    if(!lf.name||!lf.phone)return toast_("Нэр болон утас заавал!","err");
     saveL([...leads,{...lf,id:uid(),createdAt:new Date().toISOString()}]);
-    setLf(emptyLead); setShowForm(null); toast_(lf.name+" нэмэгдлээ.");
+    setLf(emptyLead);setShowForm(null);toast_(lf.name+" нэмэгдлээ.");
   };
-  const convertLead = lead => {
+  const convertLead=lead=>{
     const p={...emptyPat,id:uid(),name:lead.name,phone:lead.phone,age:lead.age,language:lead.language,coordinator:lead.coordinator,treatmentTag:lead.treatmentTag,status:"Medical Review",createdAt:new Date().toISOString()};
     saveP([...patients,p]);
     saveL(leads.map(l=>l.id===lead.id?{...l,converted:true}:l));
     toast_(lead.name+" → Patient.");
   };
-  const addPatient = () => {
-    if(!pf.name||!pf.phone) return toast_("Нэр болон утас заавал!","err");
+  const addPatient=()=>{
+    if(!pf.name||!pf.phone)return toast_("Нэр болон утас заавал!","err");
     saveP([...patients,{...emptyPat,...pf,id:uid(),createdAt:new Date().toISOString()}]);
-    setPf(emptyPat); setShowForm(null); toast_(pf.name+" бүртгэгдлээ.");
+    setPf(emptyPat);setShowForm(null);toast_(pf.name+" бүртгэгдлээ.");
   };
-  const saveEditPat = () => {
-    if(!editPat) return;
+  const saveEditPat=()=>{
+    if(!editPat)return;
     saveP(patients.map(p=>p.id===editPat.id?{...editPat}:p));
-    setSelPat({...editPat}); setEditPat(null); toast_("Шинэчлэгдлээ.");
+    setSelPat({...editPat});setEditPat(null);toast_("Шинэчлэгдлээ.");
   };
-  const updateStage = (id, status) => {
+  const updateStage=(id,status)=>{
     saveP(patients.map(p=>p.id===id?{...p,status}:p));
     setSelPat(sp=>sp&&sp.id===id?{...sp,status}:sp);
   };
-  const deletePat = id => {
-    if(!confirm("Устгах уу?")) return;
+  const deletePat=id=>{
+    if(!confirm("Устгах уу?"))return;
     saveP(patients.filter(p=>p.id!==id));
     saveC(comms.filter(c=>c.patientId!==id));
     saveInv(invoices.filter(i=>i.patientId!==id));
     saveAC(aftercare.filter(a=>a.patientId!==id));
-    if(selPat&&selPat.id===id) setSelPat(null);
+    if(selPat&&selPat.id===id)setSelPat(null);
     toast_("Устгагдлаа.");
   };
-  const addComm = pid => {
-    if(!commText.trim()) return;
+  const addComm=pid=>{
+    if(!commText.trim())return;
     saveC([...comms,{id:uid(),patientId:pid,channel:commChan,text:commText.trim(),createdAt:new Date().toISOString()}]);
-    setCommText(""); toast_("Хадгалагдлаа.");
+    setCommText("");toast_("Хадгалагдлаа.");
   };
-  const doSaveInvoice = () => {
-    if(!invF.patientId) return toast_("Өвчтөн сонгоно уу!","err");
+  const addHospital=()=>{
+    if(!hf.name)return toast_("병원명을 입력하세요.","err");
+    saveH([...hospitals,{...hf,id:"h"+uid(),specialties:hf.specialties||[]}]);
+    setHf(emptyH2);setShowHospForm(false);toast_(hf.name+" 추가됨!");
+  };
+  const doSaveInvoice=()=>{
+    if(!invF.patientId)return toast_("Өвчтөн сонгоно уу!","err");
     const total=invF.items.reduce((s,i)=>s+(Number(i.qty)||0)*(Number(i.price)||0),0);
     const inv={...invF,id:invModal==="new"?uid():invModal,total,createdAt:invModal==="new"?new Date().toISOString():invF.createdAt};
     saveInv(invModal==="new"?[...invoices,inv]:invoices.map(i=>i.id===invModal?inv:i));
-    setInvModal(null); setInvF(emptyInv); toast_("Хадгалагдлаа.");
+    setInvModal(null);setInvF(emptyInv);toast_("Хадгалагдлаа.");
   };
 
-  const handleImportFile = () => {
-    const file = importRef.current&&importRef.current.files[0];
-    if(!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      const text = ev.target.result;
-      const lines = text.split(/\r?\n/).filter(l=>l.replace(/,+/g,"").trim().length>0);
-      if(lines.length<2) return;
-      const parseLine = line => {
-        const f=[]; let cur="",inQ=false;
-        for(let i=0;i<=line.length;i++){
-          const ch=line[i];
-          if(ch==='"'){if(inQ&&line[i+1]==='"'){cur+='"';i++;}else inQ=!inQ;}
-          else if((ch===","||ch===undefined)&&!inQ){f.push(cur.trim());cur="";}
-          else if(ch!==undefined) cur+=ch;
-        }
-        return f;
-      };
+  const handleImportFile=()=>{
+    const file=importRef.current&&importRef.current.files[0];
+    if(!file)return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      const text=ev.target.result;
+      const lines=text.split(/\r?\n/).filter(l=>l.replace(/,+/g,"").trim().length>0);
+      if(lines.length<2)return;
+      const parseLine=line=>{const f=[];let cur="",inQ=false;for(let i=0;i<=line.length;i++){const ch=line[i];if(ch==='"'){if(inQ&&line[i+1]==='"'){cur+='"';i++;}else inQ=!inQ;}else if((ch===","||ch===undefined)&&!inQ){f.push(cur.trim());cur="";}else if(ch!==undefined)cur+=ch;}return f;};
       const headers=parseLine(lines[0]);
       const rows=lines.slice(1).map(l=>{const c=parseLine(l);const o={};headers.forEach((h,i)=>{o[h]=(c[i]||"").trim();});return o;}).filter(r=>Object.values(r).some(v=>v));
-      setImportHeaders(headers); setImportPreview(rows);
+      setImportHeaders(headers);setImportPreview(rows);
       const map={};
       const detect=(keys,target)=>{const f=headers.find(h=>keys.some(k=>h.toLowerCase().includes(k.toLowerCase())));if(f)map[target]=f;};
-      detect(["name","이름","성명","환자명","성함","нэр"],"name");
+      detect(["name","이름","성명","환자명","нэр"],"name");
       detect(["phone","전화","연락처","утас"],"phone");
       detect(["birth","dob","생년","생일"],"dob");
       detect(["age","나이","나스"],"age");
@@ -235,12 +229,12 @@ function App() {
       detect(["hospital","병원","эмнэлэг"],"hospitalName");
       detect(["status","상태","단계"],"status");
       detect(["sns","kakao","whatsapp"],"sns");
-      setImportCols(map); setImportStep(2);
+      setImportCols(map);setImportStep(2);
     };
     reader.readAsText(file,"UTF-8");
   };
 
-  const doImport = () => {
+  const doImport=()=>{
     const g=(row,key)=>importCols[key]?(row[importCols[key]]||"").trim():"";
     const newPats=importPreview.map(row=>{
       const dobVal=g(row,"dob");
@@ -250,548 +244,457 @@ function App() {
       return{...emptyPat,id:uid(),createdAt:new Date().toISOString(),name:g(row,"name"),phone:g(row,"phone"),sns:g(row,"sns"),dob:dobVal,age:ageVal,gender:g(row,"gender")||"Male",referralDate:g(row,"referralDate"),diagnosis:g(row,"diagnosis"),department:g(row,"department"),hospitalId:matchH?matchH.id:"",status:g(row,"status")||"Inquiry"};
     }).filter(p=>p.name);
     saveP([...patients,...newPats]);
-    setShowImport(false); setImportStep(1); setImportPreview([]); setImportCols({});
+    setShowImport(false);setImportStep(1);setImportPreview([]);setImportCols({});
     toast_(newPats.length+"명 임포트 완료!");
   };
 
-  if(loading) return React.createElement("div",{style:{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:BG}},React.createElement("div",{style:{textAlign:"center"}},React.createElement("div",{style:{fontSize:20,fontWeight:700}},"Gerel Medi Tour CRM"),React.createElement("div",{style:{color:TXT2,marginTop:6}},"로딩 중...")));
+  if(loading)return <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:BG}}><div style={{textAlign:"center"}}><div style={{fontSize:20,fontWeight:700}}>Gerel Medi Tour CRM</div><div style={{color:TXT2,marginTop:6}}>로딩 중...</div></div></div>;
 
   const paid=invoices.filter(i=>i.status==="Paid").reduce((s,i)=>s+i.total,0);
   const conv=leads.length?Math.round(leads.filter(l=>l.converted).length/leads.length*100):0;
   const urgent=leads.filter(l=>l.priority==="🔴 Urgent"&&!l.converted);
   const activeP=patients.filter(p=>["Medical Review","Hospital Contacted","Quotation Received","Patient Confirmed","Visa Processing","Travel Ready","Arrived","In Treatment"].includes(p.status)).length;
 
-  // ── DASHBOARD ──
-  const renderDashboard = () => {
+  const renderDashboard=()=>{
     const timeline=[];
     patients.forEach(p=>{
-      if(p.arrivalDate>=todayStr()&&p.arrivalDate<=addDays(todayStr(),13)) timeline.push({date:p.arrivalDate,type:"arrival",p});
-      if(p.departureDate>=todayStr()&&p.departureDate<=addDays(todayStr(),13)) timeline.push({date:p.departureDate,type:"departure",p});
+      if(p.arrivalDate>=todayStr()&&p.arrivalDate<=addDays(todayStr(),13))timeline.push({date:p.arrivalDate,type:"arrival",p});
+      if(p.departureDate>=todayStr()&&p.departureDate<=addDays(todayStr(),13))timeline.push({date:p.departureDate,type:"departure",p});
     });
     timeline.sort((a,b)=>a.date>b.date?1:-1);
-    return React.createElement("div",null,
-      urgent.length>0&&React.createElement("div",{style:{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:10,padding:"12px 16px",marginBottom:18,display:"flex",alignItems:"center",gap:12}},
-        React.createElement("div",{style:{width:8,height:8,borderRadius:"50%",background:"#ef4444"}}),
-        React.createElement("div",{style:{fontSize:13,color:"#b91c1c",fontWeight:600}},urgent.length+" urgent lead(s) need attention")
-      ),
-      React.createElement("div",{style:{...G4,marginBottom:18}},
-        React.createElement(StatCard,{label:"Active Leads",value:leads.filter(l=>!l.converted).length,sub:"Total: "+leads.length,color:"#f59e0b"}),
-        React.createElement(StatCard,{label:"Active Patients",value:activeP,sub:"Total: "+patients.length,color:BRAND}),
-        React.createElement(StatCard,{label:"Conversion",value:conv+"%",color:"#8b5cf6"}),
-        React.createElement(StatCard,{label:"Revenue Paid",value:"$"+paid.toLocaleString(),color:"#10b981"})
-      ),
-      React.createElement("div",{style:{...G2}},
-        React.createElement(Card,{p:18},
-          React.createElement("div",{style:{fontSize:13,fontWeight:600,marginBottom:12}},"Pipeline Overview"),
-          PIPELINE.map(st=>{
-            const cnt=patients.filter(p=>p.status===st).length;
-            return cnt>0?React.createElement("div",{key:st,style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:"1px solid "+BOR}},
-              React.createElement(Pill,{color:PIPELINE_C[st]||"#64748b"},st),
-              React.createElement("span",{style:{fontWeight:700,fontSize:15}},cnt)
-            ):null;
-          }),
-          !patients.length&&React.createElement("div",{style:{color:TXT3,fontSize:13}},"Өвчтөн байхгүй")
-        ),
-        React.createElement(Card,{p:18},
-          React.createElement("div",{style:{fontSize:13,fontWeight:600,marginBottom:12}},"14-Day Timeline"),
-          React.createElement("div",{style:{display:"flex",gap:4,overflowX:"auto"}},
-            Array.from({length:14}).map((_,i)=>{
-              const d=addDays(todayStr(),i); const items=timeline.filter(x=>x.date===d); const isToday=d===todayStr();
-              return React.createElement("div",{key:d,style:{flex:1,minWidth:50,background:isToday?BRAND_L:BG,borderRadius:8,padding:"6px 3px",border:"1px solid "+(isToday?BRAND:BOR)}},
-                React.createElement("div",{style:{fontSize:9,fontWeight:600,color:isToday?BRAND:TXT3,textAlign:"center",marginBottom:3}},
-                  new Date(d+"T00:00").toLocaleDateString("en-US",{weekday:"short"}),"  ",new Date(d+"T00:00").getDate()
-                ),
-                items.map((it,j)=>React.createElement("div",{key:j,style:{background:it.type==="arrival"?"#dcfce7":"#dbeafe",borderRadius:3,padding:"2px 3px",marginBottom:2}},
-                  React.createElement("div",{style:{fontSize:9,fontWeight:600,color:it.type==="arrival"?"#15803d":"#1d4ed8"}},(it.type==="arrival"?"↓":"↑")+" "+it.p.name.split(" ")[0])
-                ))
-              );
-            })
-          )
-        )
-      )
+    return (
+      <div>
+        {urgent.length>0&&<div style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:10,padding:"12px 16px",marginBottom:18,display:"flex",alignItems:"center",gap:12}}><div style={{width:8,height:8,borderRadius:"50%",background:"#ef4444"}}/><div style={{fontSize:13,color:"#b91c1c",fontWeight:600}}>{urgent.length} urgent lead(s) need attention</div></div>}
+        <div style={{...G4,marginBottom:18}}>
+          <StatCard label="Active Leads" value={leads.filter(l=>!l.converted).length} sub={"Total: "+leads.length} color="#f59e0b"/>
+          <StatCard label="Active Patients" value={activeP} sub={"Total: "+patients.length} color={BRAND}/>
+          <StatCard label="Conversion" value={conv+"%"} color="#8b5cf6"/>
+          <StatCard label="Revenue Paid" value={"$"+paid.toLocaleString()} color="#10b981"/>
+        </div>
+        <div style={G2}>
+          <Card p={18}>
+            <div style={{fontSize:13,fontWeight:600,marginBottom:12}}>Pipeline Overview</div>
+            {PIPELINE.map(st=>{const cnt=patients.filter(p=>p.status===st).length;return cnt>0?<div key={st} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:"1px solid "+BOR}}><Pill color={PIPELINE_C[st]||"#64748b"}>{st}</Pill><span style={{fontWeight:700,fontSize:15}}>{cnt}</span></div>:null;})}
+            {!patients.length&&<div style={{color:TXT3,fontSize:13}}>Өвчтөн байхгүй</div>}
+          </Card>
+          <Card p={18}>
+            <div style={{fontSize:13,fontWeight:600,marginBottom:12}}>14-Day Timeline</div>
+            <div style={{display:"flex",gap:4,overflowX:"auto"}}>
+              {Array.from({length:14}).map((_,i)=>{
+                const d=addDays(todayStr(),i);const items=timeline.filter(x=>x.date===d);const isToday=d===todayStr();
+                return <div key={d} style={{flex:1,minWidth:50,background:isToday?BRAND_L:BG,borderRadius:8,padding:"6px 3px",border:"1px solid "+(isToday?BRAND:BOR)}}>
+                  <div style={{fontSize:9,fontWeight:600,color:isToday?BRAND:TXT3,textAlign:"center",marginBottom:3}}>{new Date(d+"T00:00").toLocaleDateString("en-US",{weekday:"short"})} {new Date(d+"T00:00").getDate()}</div>
+                  {items.map((it,j)=><div key={j} style={{background:it.type==="arrival"?"#dcfce7":"#dbeafe",borderRadius:3,padding:"2px 3px",marginBottom:2}}><div style={{fontSize:9,fontWeight:600,color:it.type==="arrival"?"#15803d":"#1d4ed8"}}>{it.type==="arrival"?"↓":"↑"} {it.p.name.split(" ")[0]}</div></div>)}
+                </div>;
+              })}
+            </div>
+          </Card>
+        </div>
+      </div>
     );
   };
 
-  // ── LEADS ──
-  const renderLeads = () => {
+  const renderLeads=()=>{
     const filtered=leads.filter(l=>!search||l.name.toLowerCase().includes(search.toLowerCase())||(l.phone||"").includes(search));
-    return React.createElement("div",null,
-      React.createElement("div",{style:{display:"flex",gap:10,marginBottom:14,flexWrap:"wrap",alignItems:"center"}},
-        React.createElement("input",{style:{...inp,width:190},placeholder:"Search...",value:search,onChange:e=>setSearch(e.target.value)}),
-        React.createElement(Btn,{onClick:()=>setShowForm(showForm==="lead"?null:"lead")},"+ New Lead"),
-        React.createElement("span",{style:{color:TXT2,fontSize:12,marginLeft:"auto"}},filtered.length+" · "+leads.filter(l=>l.converted).length+" converted")
-      ),
-      showForm==="lead"&&React.createElement(Card,{p:18,style:{marginBottom:14}},
-        React.createElement("div",{style:{fontSize:14,fontWeight:600,marginBottom:14}},"New Lead"),
-        React.createElement("div",{style:G3},
-          React.createElement(FG,{label:"Нэр *"},React.createElement("input",{style:inp,value:lf.name,onChange:e=>setLf(p=>({...p,name:e.target.value}))})),
-          React.createElement(FG,{label:"Утас *"},React.createElement("input",{style:inp,value:lf.phone,onChange:e=>setLf(p=>({...p,phone:e.target.value}))})),
-          React.createElement(FG,{label:"Нас"},React.createElement("input",{style:inp,type:"number",value:lf.age,onChange:e=>setLf(p=>({...p,age:e.target.value}))})),
-          React.createElement(FG,{label:"Source"},React.createElement("select",{style:sel,value:lf.source,onChange:e=>setLf(p=>({...p,source:e.target.value}))},LEAD_SOURCES.map(x=>React.createElement("option",{key:x},x)))),
-          React.createElement(FG,{label:"Treatment"},React.createElement("select",{style:sel,value:lf.treatmentTag,onChange:e=>setLf(p=>({...p,treatmentTag:e.target.value}))},TREATMENT_TAGS.map(x=>React.createElement("option",{key:x},x)))),
-          React.createElement(FG,{label:"Priority"},React.createElement("select",{style:sel,value:lf.priority,onChange:e=>setLf(p=>({...p,priority:e.target.value}))},PRIORITY.map(x=>React.createElement("option",{key:x},x)))),
-          React.createElement(FG,{label:"Coordinator"},React.createElement("select",{style:sel,value:lf.coordinator,onChange:e=>setLf(p=>({...p,coordinator:e.target.value}))},COORDINATORS.map(x=>React.createElement("option",{key:x},x))))
-        ),
-        React.createElement("div",{style:{display:"flex",gap:8}},
-          React.createElement(Btn,{onClick:addLead},"Save"),
-          React.createElement(Btn,{v:"outline",onClick:()=>setShowForm(null)},"Cancel")
-        )
-      ),
-      React.createElement(Card,{p:0,style:{overflow:"hidden"}},
-        React.createElement("table",{style:{width:"100%",borderCollapse:"collapse"}},
-          React.createElement("thead",null,React.createElement("tr",null,["Нэр","Source","Treatment","Priority","Coordinator","Статус",""].map(h=>React.createElement("th",{key:h,style:{textAlign:"left",fontSize:10,color:TXT3,fontWeight:600,padding:"9px 12px",borderBottom:"1px solid "+BOR,background:BG,textTransform:"uppercase"}},h)))),
-          React.createElement("tbody",null,
-            filtered.length?filtered.map(l=>React.createElement("tr",{key:l.id,style:{background:SURF}},
-              React.createElement("td",{style:td0},React.createElement("div",{style:{fontWeight:600}},l.name),React.createElement("div",{style:{fontSize:11,color:TXT2}},l.phone)),
-              React.createElement("td",{style:td0},React.createElement(Tag,null,l.source)),
-              React.createElement("td",{style:td0},React.createElement(Tag,{color:"#8b5cf6"},l.treatmentTag)),
-              React.createElement("td",{style:td0},React.createElement(Pill,{color:PRIORITY_C[l.priority]||"#64748b"},l.priority)),
-              React.createElement("td",{style:td0},React.createElement("span",{style:{fontSize:12,color:TXT2}},l.coordinator)),
-              React.createElement("td",{style:td0},l.converted?React.createElement(Pill,{color:"#10b981"},"Converted"):React.createElement(Pill,{color:PIPELINE_C.Inquiry},"New")),
-              React.createElement("td",{style:td0},React.createElement("div",{style:{display:"flex",gap:5}},
-                !l.converted&&React.createElement(BtnSm,{v:"success",onClick:()=>convertLead(l)},"→ Patient"),
-                React.createElement(BtnSm,{v:"danger",onClick:()=>{saveL(leads.filter(x=>x.id!==l.id));toast_("Устгагдлаа.");}},"Delete")
-              ))
-            )):React.createElement("tr",null,React.createElement("td",{colSpan:7,style:{...td0,textAlign:"center",color:TXT3,padding:28}},"Лид байхгүй"))
-          )
-        )
-      )
+    return (
+      <div>
+        <div style={{display:"flex",gap:10,marginBottom:14,flexWrap:"wrap",alignItems:"center"}}>
+          <input style={{...inp,width:190}} placeholder="Search..." value={search} onChange={e=>setSearch(e.target.value)}/>
+          <Btn onClick={()=>setShowForm(showForm==="lead"?null:"lead")}>+ New Lead</Btn>
+          <span style={{color:TXT2,fontSize:12,marginLeft:"auto"}}>{filtered.length} · {leads.filter(l=>l.converted).length} converted</span>
+        </div>
+        {showForm==="lead"&&<Card p={18} style={{marginBottom:14}}>
+          <div style={{fontSize:14,fontWeight:600,marginBottom:14}}>New Lead</div>
+          <div style={G3}>
+            <FG label="Нэр *"><input style={inp} value={lf.name} onChange={e=>setLf(p=>({...p,name:e.target.value}))}/></FG>
+            <FG label="Утас *"><input style={inp} value={lf.phone} onChange={e=>setLf(p=>({...p,phone:e.target.value}))}/></FG>
+            <FG label="Нас"><input style={inp} type="number" value={lf.age} onChange={e=>setLf(p=>({...p,age:e.target.value}))}/></FG>
+            <FG label="Source"><select style={sel} value={lf.source} onChange={e=>setLf(p=>({...p,source:e.target.value}))}>{LEAD_SOURCES.map(x=><option key={x}>{x}</option>)}</select></FG>
+            <FG label="Treatment"><select style={sel} value={lf.treatmentTag} onChange={e=>setLf(p=>({...p,treatmentTag:e.target.value}))}>{TREATMENT_TAGS.map(x=><option key={x}>{x}</option>)}</select></FG>
+            <FG label="Priority"><select style={sel} value={lf.priority} onChange={e=>setLf(p=>({...p,priority:e.target.value}))}>{PRIORITY.map(x=><option key={x}>{x}</option>)}</select></FG>
+            <FG label="Coordinator"><select style={sel} value={lf.coordinator} onChange={e=>setLf(p=>({...p,coordinator:e.target.value}))}>{COORDINATORS.map(x=><option key={x}>{x}</option>)}</select></FG>
+          </div>
+          <div style={{display:"flex",gap:8}}><Btn onClick={addLead}>Save</Btn><Btn v="outline" onClick={()=>setShowForm(null)}>Cancel</Btn></div>
+        </Card>}
+        <Card p={0} style={{overflow:"hidden"}}>
+          <table style={{width:"100%",borderCollapse:"collapse"}}>
+            <thead><tr>{["Нэр","Source","Treatment","Priority","Coordinator","Статус",""].map(h=><th key={h} style={{textAlign:"left",fontSize:10,color:TXT3,fontWeight:600,padding:"9px 12px",borderBottom:"1px solid "+BOR,background:BG,textTransform:"uppercase"}}>{h}</th>)}</tr></thead>
+            <tbody>
+              {filtered.length?filtered.map(l=><tr key={l.id} style={{background:SURF}}>
+                <td style={td0}><div style={{fontWeight:600}}>{l.name}</div><div style={{fontSize:11,color:TXT2}}>{l.phone}</div></td>
+                <td style={td0}><Tag>{l.source}</Tag></td>
+                <td style={td0}><Tag color="#8b5cf6">{l.treatmentTag}</Tag></td>
+                <td style={td0}><Pill color={PRIORITY_C[l.priority]||"#64748b"}>{l.priority}</Pill></td>
+                <td style={td0}><span style={{fontSize:12,color:TXT2}}>{l.coordinator}</span></td>
+                <td style={td0}>{l.converted?<Pill color="#10b981">Converted</Pill>:<Pill color={PIPELINE_C.Inquiry}>New</Pill>}</td>
+                <td style={td0}><div style={{display:"flex",gap:5}}>{!l.converted&&<BtnSm v="success" onClick={()=>convertLead(l)}>→ Patient</BtnSm>}<BtnSm v="danger" onClick={()=>{saveL(leads.filter(x=>x.id!==l.id));toast_("Устгагдлаа.");}}>Delete</BtnSm></div></td>
+              </tr>):<tr><td colSpan={7} style={{...td0,textAlign:"center",color:TXT3,padding:28}}>Лид байхгүй</td></tr>}
+            </tbody>
+          </table>
+        </Card>
+      </div>
     );
   };
 
-  // ── PATIENTS ──
-  const renderPatients = () => {
+  const renderPatients=()=>{
     const filtered=patients.filter(p=>{
-      if(fStage!=="All"&&p.status!==fStage) return false;
-      if(search&&!p.name.toLowerCase().includes(search.toLowerCase())&&!(p.phone||"").includes(search)&&!(p.diagnosis||"").toLowerCase().includes(search.toLowerCase())) return false;
+      if(fStage!=="All"&&p.status!==fStage)return false;
+      if(search&&!p.name.toLowerCase().includes(search.toLowerCase())&&!(p.phone||"").includes(search)&&!(p.diagnosis||"").toLowerCase().includes(search.toLowerCase()))return false;
       return true;
     }).sort((a,b)=>{
       const da=a.referralDate||"",db=b.referralDate||"";
-      if(!da&&!db)return 0; if(!da)return 1; if(!db)return -1;
+      if(!da&&!db)return 0;if(!da)return 1;if(!db)return -1;
       return sortOrder==="desc"?db.localeCompare(da):da.localeCompare(db);
     });
-    return React.createElement("div",null,
-      React.createElement("div",{style:{display:"flex",gap:9,flexWrap:"wrap",marginBottom:14,alignItems:"center"}},
-        React.createElement("input",{style:{...inp,width:220},placeholder:"이름 / 전화번호 / 진단명...",value:search,onChange:e=>setSearch(e.target.value)}),
-        React.createElement("select",{style:{...sel,width:160},value:fStage,onChange:e=>setFStage(e.target.value)},
-          React.createElement("option",{value:"All"},"All stages"),
-          PIPELINE.map(x=>React.createElement("option",{key:x},x))
-        ),
-        React.createElement(Btn,{onClick:()=>setShowForm(showForm==="patient"?null:"patient")},"+ 신규 환자"),
-        React.createElement("button",{onClick:()=>setSortOrder(o=>o==="desc"?"asc":"desc"),style:{background:SURF,border:"1px solid "+BOR,borderRadius:8,padding:"9px 14px",fontSize:12,fontWeight:600,cursor:"pointer",color:TXT2}},
-          "의뢰수신일 "+(sortOrder==="desc"?"↓ 최신순":"↑ 오래된순")
-        ),
-        React.createElement(Btn,{v:"outline",onClick:()=>{setShowImport(true);setImportStep(1);}},"⬆ CSV Import"),
-        React.createElement("span",{style:{color:TXT2,fontSize:12,marginLeft:"auto"}},filtered.length+" patients")
-      ),
-      showForm==="patient"&&renderPatForm(),
-      showImport&&renderImportModal(),
-      React.createElement(Card,{p:0,style:{overflow:"hidden"}},
-        React.createElement("table",{style:{width:"100%",borderCollapse:"collapse"}},
-          React.createElement("thead",null,React.createElement("tr",null,["환자명","생년월일/나이","전화번호/SNS","의뢰수신일","진단명/진료과","선택병원","비자","단계",""].map(h=>React.createElement("th",{key:h,style:{textAlign:"left",fontSize:10,color:TXT3,fontWeight:600,padding:"9px 12px",borderBottom:"1px solid "+BOR,background:BG,textTransform:"uppercase",whiteSpace:"nowrap"}},h)))),
-          React.createElement("tbody",null,
-            filtered.length?filtered.map(p=>{
-              const h=hospitals.find(h=>h.id===p.hospitalId);
-              return React.createElement("tr",{key:p.id,style:{background:selPat&&selPat.id===p.id?"#eff6ff":SURF,cursor:"pointer"},onClick:()=>{setSelPat(selPat&&selPat.id===p.id?null:p);setPTab("Info");}},
-                React.createElement("td",{style:td0},React.createElement("div",{style:{fontWeight:600}},p.name),p.interpreterNeeded==="Yes"&&React.createElement("div",{style:{fontSize:10,color:"#f59e0b"}},"통역필요")),
-                React.createElement("td",{style:td0},React.createElement("div",{style:{fontSize:12}},p.dob?fmtDate(p.dob):"—"),p.age&&React.createElement("div",{style:{fontSize:11,color:TXT2}},p.age+"세")),
-                React.createElement("td",{style:td0},React.createElement("div",{style:{fontSize:12}},p.phone),p.sns&&React.createElement("div",{style:{fontSize:11,color:TXT2}},p.sns)),
-                React.createElement("td",{style:td0},React.createElement("div",{style:{fontSize:12}},p.referralDate?fmtDate(p.referralDate):"—")),
-                React.createElement("td",{style:td0},p.diagnosis&&React.createElement("div",{style:{fontWeight:500,fontSize:12}},p.diagnosis),p.department&&React.createElement("div",{style:{fontSize:11,color:TXT2}},p.department)),
-                React.createElement("td",{style:td0},React.createElement("div",{style:{fontSize:12}},h?h.name:"—"),h&&React.createElement("div",{style:{fontSize:11,color:TXT2}},h.city)),
-                React.createElement("td",{style:td0},React.createElement(Pill,{color:p.visaStatus==="Approved"?"#10b981":p.visaStatus==="Applied"?"#f59e0b":"#94a3b8"},p.visaStatus||"—")),
-                React.createElement("td",{style:td0},React.createElement(Pill,{color:PIPELINE_C[p.status]||"#64748b"},p.status||"Inquiry"),p.referralProgress&&React.createElement("div",{style:{fontSize:10,color:TXT2,marginTop:3}},p.referralProgress)),
-                React.createElement("td",{style:td0,onClick:e=>e.stopPropagation()},React.createElement(BtnSm,{v:"danger",onClick:()=>deletePat(p.id)},"Delete"))
-              );
-            }):React.createElement("tr",null,React.createElement("td",{colSpan:9,style:{...td0,textAlign:"center",color:TXT3,padding:28}},"Өвчтөн олдсонгүй"))
-          )
-        )
-      ),
-      selPat&&renderPatDetail(patients.find(p=>p.id===selPat.id)||selPat),
-      editPat&&editPat.id===(selPat&&selPat.id)&&renderEditPat()
+    return (
+      <div>
+        <div style={{display:"flex",gap:9,flexWrap:"wrap",marginBottom:14,alignItems:"center"}}>
+          <input style={{...inp,width:220}} placeholder="이름 / 전화번호 / 진단명..." value={search} onChange={e=>setSearch(e.target.value)}/>
+          <select style={{...sel,width:160}} value={fStage} onChange={e=>setFStage(e.target.value)}><option value="All">All stages</option>{PIPELINE.map(x=><option key={x}>{x}</option>)}</select>
+          <Btn onClick={()=>setShowForm(showForm==="patient"?null:"patient")}>+ 신규 환자</Btn>
+          <button onClick={()=>setSortOrder(o=>o==="desc"?"asc":"desc")} style={{background:SURF,border:"1px solid "+BOR,borderRadius:8,padding:"9px 14px",fontSize:12,fontWeight:600,cursor:"pointer",color:TXT2}}>의뢰수신일 {sortOrder==="desc"?"↓ 최신순":"↑ 오래된순"}</button>
+          <Btn v="outline" onClick={()=>{setShowImport(true);setImportStep(1);}}>⬆ CSV Import</Btn>
+          <span style={{color:TXT2,fontSize:12,marginLeft:"auto"}}>{filtered.length} patients</span>
+        </div>
+        {showForm==="patient"&&renderPatForm()}
+        {showImport&&renderImportModal()}
+        <Card p={0} style={{overflow:"hidden"}}>
+          <table style={{width:"100%",borderCollapse:"collapse"}}>
+            <thead><tr>{["환자명","생년월일/나이","전화번호/SNS","의뢰수신일","진단명/진료과","선택병원","비자","단계",""].map(h=><th key={h} style={{textAlign:"left",fontSize:10,color:TXT3,fontWeight:600,padding:"9px 12px",borderBottom:"1px solid "+BOR,background:BG,textTransform:"uppercase",whiteSpace:"nowrap"}}>{h}</th>)}</tr></thead>
+            <tbody>
+              {filtered.length?filtered.map(p=>{
+                const h=hospitals.find(h=>h.id===p.hospitalId);
+                return <tr key={p.id} style={{background:selPat&&selPat.id===p.id?"#eff6ff":SURF,cursor:"pointer"}} onClick={()=>{setSelPat(selPat&&selPat.id===p.id?null:p);setPTab("Info");}}>
+                  <td style={td0}><div style={{fontWeight:600}}>{p.name}</div>{p.interpreterNeeded==="Yes"&&<div style={{fontSize:10,color:"#f59e0b"}}>통역필요</div>}</td>
+                  <td style={td0}><div style={{fontSize:12}}>{p.dob?fmtDate(p.dob):"—"}</div>{p.age&&<div style={{fontSize:11,color:TXT2}}>{p.age}세</div>}</td>
+                  <td style={td0}><div style={{fontSize:12}}>{p.phone}</div>{p.sns&&<div style={{fontSize:11,color:TXT2}}>{p.sns}</div>}</td>
+                  <td style={td0}><div style={{fontSize:12}}>{p.referralDate?fmtDate(p.referralDate):"—"}</div></td>
+                  <td style={td0}>{p.diagnosis&&<div style={{fontWeight:500,fontSize:12}}>{p.diagnosis}</div>}{p.department&&<div style={{fontSize:11,color:TXT2}}>{p.department}</div>}</td>
+                  <td style={td0}><div style={{fontSize:12}}>{h?h.name:"—"}</div>{h&&<div style={{fontSize:11,color:TXT2}}>{h.city}</div>}</td>
+                  <td style={td0}><Pill color={p.visaStatus==="Approved"?"#10b981":p.visaStatus==="Applied"?"#f59e0b":"#94a3b8"}>{p.visaStatus||"—"}</Pill></td>
+                  <td style={td0}><Pill color={PIPELINE_C[p.status]||"#64748b"}>{p.status||"Inquiry"}</Pill>{p.referralProgress&&<div style={{fontSize:10,color:TXT2,marginTop:3}}>{p.referralProgress}</div>}</td>
+                  <td style={td0} onClick={e=>e.stopPropagation()}><BtnSm v="danger" onClick={()=>deletePat(p.id)}>Delete</BtnSm></td>
+                </tr>;
+              }):<tr><td colSpan={9} style={{...td0,textAlign:"center",color:TXT3,padding:28}}>Өвчтөн олдсонгүй</td></tr>}
+            </tbody>
+          </table>
+        </Card>
+        {selPat&&renderPatDetail(patients.find(p=>p.id===selPat.id)||selPat)}
+        {editPat&&editPat.id===(selPat&&selPat.id)&&renderEditPat()}
+      </div>
     );
   };
 
-  const renderPatForm = () => {
+  const renderPatForm=()=>{
     const set=k=>e=>setPf(p=>({...p,[k]:e.target.value}));
-    return React.createElement(Card,{p:20,style:{marginBottom:14}},
-      React.createElement("div",{style:{fontSize:14,fontWeight:700,marginBottom:16}},"신규 환자 등록"),
-      React.createElement(SH,{t:"의뢰 정보"}),
-      React.createElement("div",{style:G3},
-        React.createElement(FG,{label:"의뢰수신일"},React.createElement("input",{style:inp,type:"date",value:pf.referralDate,onChange:set("referralDate")})),
-        React.createElement(FG,{label:"의뢰 진행 현황"},React.createElement("input",{style:inp,value:pf.referralProgress,onChange:set("referralProgress"),placeholder:"예: 서류 검토 중"})),
-        React.createElement(FG,{label:"진료 예약 현황"},React.createElement("input",{style:inp,value:pf.appointmentStatus,onChange:set("appointmentStatus"),placeholder:"예: 예약 완료"}))
-      ),
-      React.createElement(SH,{t:"환자 기본정보"}),
-      React.createElement("div",{style:G3},
-        React.createElement(FG,{label:"환자명 *"},React.createElement("input",{style:inp,value:pf.name,onChange:set("name")})),
-        React.createElement(FG,{label:"전화번호 *"},React.createElement("input",{style:inp,value:pf.phone,onChange:set("phone")})),
-        React.createElement(FG,{label:"SNS (KakaoTalk/WhatsApp)"},React.createElement("input",{style:inp,value:pf.sns,onChange:set("sns"),placeholder:"@아이디"})),
-        React.createElement(FG,{label:"생년월일"},React.createElement("input",{style:inp,type:"date",value:pf.dob,onChange:e=>{const d=e.target.value;setPf(p=>({...p,dob:d,age:d?String(calcAge(d)):""}));}})),
-        React.createElement(FG,{label:"나이"},React.createElement("input",{style:{...inp,background:pf.dob?"#f1f5f9":SURF},type:"number",value:pf.age,readOnly:!!pf.dob,onChange:e=>!pf.dob&&setPf(p=>({...p,age:e.target.value}))})),
-        React.createElement(FG,{label:"Gender"},React.createElement("select",{style:sel,value:pf.gender,onChange:set("gender")},React.createElement("option",null,"Male"),React.createElement("option",null,"Female"),React.createElement("option",null,"Other"))),
-        React.createElement(FG,{label:"Language"},React.createElement("select",{style:sel,value:pf.language,onChange:set("language")},LANGUAGES.map(x=>React.createElement("option",{key:x},x)))),
-        React.createElement(FG,{label:"Interpreter"},React.createElement("select",{style:sel,value:pf.interpreterNeeded,onChange:set("interpreterNeeded")},React.createElement("option",{value:"No"},"No"),React.createElement("option",{value:"Yes"},"Yes"))),
-        React.createElement(FG,{label:"Coordinator"},React.createElement("select",{style:sel,value:pf.coordinator,onChange:set("coordinator")},COORDINATORS.map(x=>React.createElement("option",{key:x},x))))
-      ),
-      React.createElement(SH,{t:"진단 및 진료과"}),
-      React.createElement("div",{style:G3},
-        React.createElement(FG,{label:"진단명"},React.createElement("input",{style:inp,value:pf.diagnosis,onChange:set("diagnosis"),placeholder:"예: 백내장"})),
-        React.createElement(FG,{label:"진료과"},React.createElement("input",{style:inp,value:pf.department,onChange:set("department"),placeholder:"예: 안과"})),
-        React.createElement(FG,{label:"Treatment Tag"},React.createElement("select",{style:sel,value:pf.treatmentTag,onChange:set("treatmentTag")},React.createElement("option",{value:""},"— Select —"),TREATMENT_TAGS.map(x=>React.createElement("option",{key:x},x)))),
-        React.createElement(FG,{label:"선택병원"},React.createElement("select",{style:sel,value:pf.hospitalId,onChange:set("hospitalId")},React.createElement("option",{value:""},"— Select —"),hospitals.filter(h=>h.active).map(h=>React.createElement("option",{key:h.id,value:h.id},h.name+" ("+h.city+")")))),
-        React.createElement(FG,{label:"Stage"},React.createElement("select",{style:sel,value:pf.status,onChange:set("status")},PIPELINE.map(x=>React.createElement("option",{key:x},x))))
-      ),
-      React.createElement(SH,{t:"여권 & 비자"}),
-      React.createElement("div",{style:G3},
-        React.createElement(FG,{label:"Passport No."},React.createElement("input",{style:inp,value:pf.passportNo,onChange:set("passportNo")})),
-        React.createElement(FG,{label:"Passport Expiry"},React.createElement("input",{style:inp,type:"date",value:pf.passportExpiry,onChange:set("passportExpiry")})),
-        React.createElement(FG,{label:"Visa Status"},React.createElement("select",{style:sel,value:pf.visaStatus,onChange:set("visaStatus")},VISA_ST.map(x=>React.createElement("option",{key:x},x))))
-      ),
-      React.createElement(SH,{t:"여행 정보"}),
-      React.createElement("div",{style:G3},
-        React.createElement(FG,{label:"Arrival Date"},React.createElement("input",{style:inp,type:"date",value:pf.arrivalDate,onChange:set("arrivalDate")})),
-        React.createElement(FG,{label:"Departure Date"},React.createElement("input",{style:inp,type:"date",value:pf.departureDate,onChange:set("departureDate")})),
-        React.createElement(FG,{label:"Airport Transfer"},React.createElement("select",{style:sel,value:pf.airportTransfer,onChange:set("airportTransfer")},TRANSFER.map(x=>React.createElement("option",{key:x},x)))),
-        React.createElement(FG,{label:"Hotel"},React.createElement("input",{style:inp,value:pf.hotelName,onChange:set("hotelName")})),
-        React.createElement(FG,{label:"Arrival Flight"},React.createElement("input",{style:inp,value:pf.flightArr,onChange:set("flightArr"),placeholder:"KE876"}))
-      ),
-      React.createElement("div",{style:{display:"flex",gap:8}},
-        React.createElement(Btn,{onClick:addPatient},"등록"),
-        React.createElement(Btn,{v:"outline",onClick:()=>setShowForm(null)},"취소")
-      )
-    );
+    return <Card p={20} style={{marginBottom:14}}>
+      <div style={{fontSize:14,fontWeight:700,marginBottom:16}}>신규 환자 등록</div>
+      <SH t="의뢰 정보"/>
+      <div style={G3}>
+        <FG label="의뢰수신일"><input style={inp} type="date" value={pf.referralDate} onChange={set("referralDate")}/></FG>
+        <FG label="의뢰 진행 현황"><input style={inp} value={pf.referralProgress} onChange={set("referralProgress")} placeholder="예: 서류 검토 중"/></FG>
+        <FG label="진료 예약 현황"><input style={inp} value={pf.appointmentStatus} onChange={set("appointmentStatus")} placeholder="예: 예약 완료"/></FG>
+      </div>
+      <SH t="환자 기본정보"/>
+      <div style={G3}>
+        <FG label="환자명 *"><input style={inp} value={pf.name} onChange={set("name")}/></FG>
+        <FG label="전화번호 *"><input style={inp} value={pf.phone} onChange={set("phone")}/></FG>
+        <FG label="SNS (KakaoTalk/WhatsApp)"><input style={inp} value={pf.sns} onChange={set("sns")} placeholder="@아이디"/></FG>
+        <FG label="생년월일"><input style={inp} type="date" value={pf.dob} onChange={e=>{const d=e.target.value;setPf(p=>({...p,dob:d,age:d?String(calcAge(d)):""}));}}/></FG>
+        <FG label="나이"><input style={{...inp,background:pf.dob?"#f1f5f9":SURF}} type="number" value={pf.age} readOnly={!!pf.dob} onChange={e=>!pf.dob&&setPf(p=>({...p,age:e.target.value}))}/></FG>
+        <FG label="Gender"><select style={sel} value={pf.gender} onChange={set("gender")}><option>Male</option><option>Female</option><option>Other</option></select></FG>
+        <FG label="Language"><select style={sel} value={pf.language} onChange={set("language")}>{LANGUAGES.map(x=><option key={x}>{x}</option>)}</select></FG>
+        <FG label="Interpreter"><select style={sel} value={pf.interpreterNeeded} onChange={set("interpreterNeeded")}><option value="No">No</option><option value="Yes">Yes</option></select></FG>
+        <FG label="Coordinator"><select style={sel} value={pf.coordinator} onChange={set("coordinator")}>{COORDINATORS.map(x=><option key={x}>{x}</option>)}</select></FG>
+      </div>
+      <SH t="진단 및 진료과"/>
+      <div style={G3}>
+        <FG label="진단명"><input style={inp} value={pf.diagnosis} onChange={set("diagnosis")} placeholder="예: 백내장"/></FG>
+        <FG label="진료과"><input style={inp} value={pf.department} onChange={set("department")} placeholder="예: 안과"/></FG>
+        <FG label="Treatment Tag"><select style={sel} value={pf.treatmentTag} onChange={set("treatmentTag")}><option value="">— Select —</option>{TREATMENT_TAGS.map(x=><option key={x}>{x}</option>)}</select></FG>
+        <FG label="선택병원"><select style={sel} value={pf.hospitalId} onChange={set("hospitalId")}><option value="">— Select —</option>{hospitals.filter(h=>h.active).map(h=><option key={h.id} value={h.id}>{h.name} ({h.city})</option>)}</select></FG>
+        <FG label="Stage"><select style={sel} value={pf.status} onChange={set("status")}>{PIPELINE.map(x=><option key={x}>{x}</option>)}</select></FG>
+      </div>
+      <SH t="여권 & 비자"/>
+      <div style={G3}>
+        <FG label="Passport No."><input style={inp} value={pf.passportNo} onChange={set("passportNo")}/></FG>
+        <FG label="Passport Expiry"><input style={inp} type="date" value={pf.passportExpiry} onChange={set("passportExpiry")}/></FG>
+        <FG label="Visa Status"><select style={sel} value={pf.visaStatus} onChange={set("visaStatus")}>{VISA_ST.map(x=><option key={x}>{x}</option>)}</select></FG>
+      </div>
+      <SH t="여행 정보"/>
+      <div style={G3}>
+        <FG label="Arrival Date"><input style={inp} type="date" value={pf.arrivalDate} onChange={set("arrivalDate")}/></FG>
+        <FG label="Departure Date"><input style={inp} type="date" value={pf.departureDate} onChange={set("departureDate")}/></FG>
+        <FG label="Airport Transfer"><select style={sel} value={pf.airportTransfer} onChange={set("airportTransfer")}>{TRANSFER.map(x=><option key={x}>{x}</option>)}</select></FG>
+        <FG label="Hotel"><input style={inp} value={pf.hotelName} onChange={set("hotelName")}/></FG>
+        <FG label="Arrival Flight"><input style={inp} value={pf.flightArr} onChange={set("flightArr")} placeholder="KE876"/></FG>
+      </div>
+      <div style={{display:"flex",gap:8}}><Btn onClick={addPatient}>등록</Btn><Btn v="outline" onClick={()=>setShowForm(null)}>취소</Btn></div>
+    </Card>;
   };
 
-  const renderEditPat = () => {
-    if(!editPat) return null;
+  const renderEditPat=()=>{
+    if(!editPat)return null;
     const set=k=>e=>setEditPat(prev=>({...prev,[k]:e.target.value}));
-    return React.createElement(Card,{p:20,style:{marginTop:14,borderTop:"3px solid #f59e0b"}},
-      React.createElement("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:16}},
-        React.createElement("div",{style:{fontSize:14,fontWeight:700}},"Edit: "+editPat.name),
-        React.createElement(BtnSm,{v:"danger",onClick:()=>setEditPat(null)},"Cancel")
-      ),
-      React.createElement("div",{style:G3},
-        React.createElement(FG,{label:"의뢰수신일"},React.createElement("input",{style:inp,type:"date",value:editPat.referralDate||"",onChange:set("referralDate")})),
-        React.createElement(FG,{label:"의뢰 진행 현황"},React.createElement("input",{style:inp,value:editPat.referralProgress||"",onChange:set("referralProgress")})),
-        React.createElement(FG,{label:"진료 예약 현황"},React.createElement("input",{style:inp,value:editPat.appointmentStatus||"",onChange:set("appointmentStatus")})),
-        React.createElement(FG,{label:"환자명 *"},React.createElement("input",{style:inp,value:editPat.name,onChange:set("name")})),
-        React.createElement(FG,{label:"전화번호"},React.createElement("input",{style:inp,value:editPat.phone,onChange:set("phone")})),
-        React.createElement(FG,{label:"SNS"},React.createElement("input",{style:inp,value:editPat.sns||"",onChange:set("sns")})),
-        React.createElement(FG,{label:"생년월일"},React.createElement("input",{style:inp,type:"date",value:editPat.dob||"",onChange:e=>{const d=e.target.value;setEditPat(prev=>({...prev,dob:d,age:d?String(calcAge(d)):prev.age}));}})),
-        React.createElement(FG,{label:"진단명"},React.createElement("input",{style:inp,value:editPat.diagnosis||"",onChange:set("diagnosis")})),
-        React.createElement(FG,{label:"진료과"},React.createElement("input",{style:inp,value:editPat.department||"",onChange:set("department")})),
-        React.createElement(FG,{label:"선택병원"},React.createElement("select",{style:sel,value:editPat.hospitalId||"",onChange:set("hospitalId")},React.createElement("option",{value:""},"— Select —"),hospitals.map(h=>React.createElement("option",{key:h.id,value:h.id},h.name)))),
-        React.createElement(FG,{label:"Stage"},React.createElement("select",{style:sel,value:editPat.status,onChange:set("status")},PIPELINE.map(x=>React.createElement("option",{key:x},x)))),
-        React.createElement(FG,{label:"Visa Status"},React.createElement("select",{style:sel,value:editPat.visaStatus,onChange:set("visaStatus")},VISA_ST.map(x=>React.createElement("option",{key:x},x)))),
-        React.createElement(FG,{label:"Arrival Date"},React.createElement("input",{style:inp,type:"date",value:editPat.arrivalDate||"",onChange:set("arrivalDate")})),
-        React.createElement(FG,{label:"Departure Date"},React.createElement("input",{style:inp,type:"date",value:editPat.departureDate||"",onChange:set("departureDate")}))
-      ),
-      React.createElement("div",{style:{display:"flex",gap:8}},
-        React.createElement(Btn,{onClick:saveEditPat},"저장"),
-        React.createElement(Btn,{v:"outline",onClick:()=>setEditPat(null)},"취소")
-      )
-    );
+    return <Card p={20} style={{marginTop:14,borderTop:"3px solid #f59e0b"}}>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:16}}><div style={{fontSize:14,fontWeight:700}}>Edit: {editPat.name}</div><BtnSm v="danger" onClick={()=>setEditPat(null)}>Cancel</BtnSm></div>
+      <div style={G3}>
+        <FG label="의뢰수신일"><input style={inp} type="date" value={editPat.referralDate||""} onChange={set("referralDate")}/></FG>
+        <FG label="의뢰 진행 현황"><input style={inp} value={editPat.referralProgress||""} onChange={set("referralProgress")}/></FG>
+        <FG label="진료 예약 현황"><input style={inp} value={editPat.appointmentStatus||""} onChange={set("appointmentStatus")}/></FG>
+        <FG label="환자명 *"><input style={inp} value={editPat.name} onChange={set("name")}/></FG>
+        <FG label="전화번호"><input style={inp} value={editPat.phone} onChange={set("phone")}/></FG>
+        <FG label="SNS"><input style={inp} value={editPat.sns||""} onChange={set("sns")}/></FG>
+        <FG label="생년월일"><input style={inp} type="date" value={editPat.dob||""} onChange={e=>{const d=e.target.value;setEditPat(prev=>({...prev,dob:d,age:d?String(calcAge(d)):prev.age}));}}/></FG>
+        <FG label="진단명"><input style={inp} value={editPat.diagnosis||""} onChange={set("diagnosis")}/></FG>
+        <FG label="진료과"><input style={inp} value={editPat.department||""} onChange={set("department")}/></FG>
+        <FG label="선택병원"><select style={sel} value={editPat.hospitalId||""} onChange={set("hospitalId")}><option value="">— Select —</option>{hospitals.map(h=><option key={h.id} value={h.id}>{h.name}</option>)}</select></FG>
+        <FG label="Stage"><select style={sel} value={editPat.status} onChange={set("status")}>{PIPELINE.map(x=><option key={x}>{x}</option>)}</select></FG>
+        <FG label="Visa Status"><select style={sel} value={editPat.visaStatus} onChange={set("visaStatus")}>{VISA_ST.map(x=><option key={x}>{x}</option>)}</select></FG>
+        <FG label="Arrival Date"><input style={inp} type="date" value={editPat.arrivalDate||""} onChange={set("arrivalDate")}/></FG>
+        <FG label="Departure Date"><input style={inp} type="date" value={editPat.departureDate||""} onChange={set("departureDate")}/></FG>
+      </div>
+      <div style={{display:"flex",gap:8}}><Btn onClick={saveEditPat}>저장</Btn><Btn v="outline" onClick={()=>setEditPat(null)}>취소</Btn></div>
+    </Card>;
   };
 
-  const renderPatDetail = (p) => {
+  const renderPatDetail=p=>{
     const h=hospitals.find(h=>h.id===p.hospitalId);
     const pComms=comms.filter(c=>c.patientId===p.id).sort((a,b)=>b.createdAt>a.createdAt?1:-1);
     const pInvs=invoices.filter(i=>i.patientId===p.id);
     const pAC=aftercare.filter(a=>a.patientId===p.id);
-    const DTABS=[["Info","정보"],["Comms","커뮤니케이션"],["Travel","여행"],["Finance","재무"],["Aftercare","사후관리"]];
-    return React.createElement(Card,{p:20,style:{marginTop:14,borderTop:"3px solid "+BRAND}},
-      React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}},
-        React.createElement("div",null,
-          React.createElement("div",{style:{fontSize:16,fontWeight:700}},p.name),
-          React.createElement("div",{style:{fontSize:12,color:TXT2,marginTop:2}},p.dob?fmtDate(p.dob)+" · ":"",p.age?p.age+"세 · ":"",p.gender," · ",p.language),
-          React.createElement("div",{style:{fontSize:12,color:BRAND,marginTop:2,fontWeight:500}},h?h.name+" · "+h.city:"병원 미배정",p.diagnosis&&" · "+p.diagnosis)
-        ),
-        React.createElement("div",{style:{display:"flex",gap:7,alignItems:"center"}},
-          React.createElement("select",{style:{...sel,width:158},value:p.status||"Inquiry",onChange:e=>updateStage(p.id,e.target.value)},PIPELINE.map(x=>React.createElement("option",{key:x},x))),
-          React.createElement(BtnSm,{v:"primary",onClick:()=>setEditPat(editPat&&editPat.id===p.id?null:{...p})},editPat&&editPat.id===p.id?"취소":"편집"),
-          React.createElement(BtnSm,{v:"danger",onClick:()=>deletePat(p.id)},"삭제"),
-          React.createElement(BtnSm,{onClick:()=>{setSelPat(null);setEditPat(null);}},"✕")
-        )
-      ),
-      React.createElement("div",{style:{display:"flex",gap:4,marginBottom:14,borderBottom:"1px solid "+BOR,paddingBottom:10,flexWrap:"wrap"}},
-        DTABS.map(([key,label])=>React.createElement("button",{key,style:{background:pTab===key?BRAND:"transparent",color:pTab===key?"#fff":TXT2,border:"1px solid "+(pTab===key?BRAND:BOR),borderRadius:6,padding:"5px 12px",fontSize:12,fontWeight:pTab===key?600:400,cursor:"pointer"},onClick:()=>setPTab(key)},label))
-      ),
-      pTab==="Info"&&React.createElement("div",{style:G2},
-        React.createElement("div",null,
-          React.createElement(SH,{t:"의뢰 정보"}),
-          React.createElement(IR,{label:"의뢰수신일",val:fmtDate(p.referralDate)}),
-          React.createElement(IR,{label:"진행 현황",val:p.referralProgress}),
-          React.createElement(IR,{label:"예약 현황",val:p.appointmentStatus}),
-          React.createElement(SH,{t:"연락처"}),
-          React.createElement(IR,{label:"전화번호",val:p.phone}),
-          React.createElement(IR,{label:"SNS",val:p.sns}),
-          React.createElement(IR,{label:"이메일",val:p.email})
-        ),
-        React.createElement("div",null,
-          React.createElement(SH,{t:"진단 및 진료"}),
-          React.createElement(IR,{label:"진단명",val:p.diagnosis}),
-          React.createElement(IR,{label:"진료과",val:p.department}),
-          React.createElement(IR,{label:"Treatment",val:p.treatmentTag}),
-          React.createElement(SH,{t:"여권 & 비자"}),
-          React.createElement(IR,{label:"Passport No.",val:p.passportNo}),
-          React.createElement(IR,{label:"Visa Status",val:p.visaStatus})
-        )
-      ),
-      pTab==="Comms"&&React.createElement("div",null,
-        React.createElement("div",{style:{display:"flex",gap:8,marginBottom:12}},
-          React.createElement("select",{style:{...sel,width:165},value:commChan,onChange:e=>setCommChan(e.target.value)},COMM_CHANNELS.map(x=>React.createElement("option",{key:x},x))),
-          React.createElement("input",{style:{...inp,flex:1},placeholder:"메시지 입력...",value:commText,onChange:e=>setCommText(e.target.value),onKeyDown:e=>e.key==="Enter"&&addComm(p.id)}),
-          React.createElement(Btn,{onClick:()=>addComm(p.id)},"저장")
-        ),
-        pComms.map(c=>React.createElement("div",{key:c.id,style:{display:"flex",gap:10,padding:"9px 0",borderBottom:"1px solid "+BOR}},
-          React.createElement(Tag,null,c.channel),
-          React.createElement("div",{style:{flex:1}},React.createElement("div",{style:{fontSize:13}},c.text),React.createElement("div",{style:{fontSize:11,color:TXT2,marginTop:2}},fmtDT(c.createdAt)))
-        )),
-        !pComms.length&&React.createElement("div",{style:{color:TXT3,fontSize:13}},"커뮤니케이션 내역이 없습니다.")
-      ),
-      pTab==="Travel"&&React.createElement("div",{style:G2},
-        React.createElement("div",null,
-          React.createElement(SH,{t:"항공편"}),
-          React.createElement(IR,{label:"Arrival",val:fmtDate(p.arrivalDate)}),
-          React.createElement(IR,{label:"Departure",val:fmtDate(p.departureDate)}),
-          React.createElement(IR,{label:"Arrival Flight",val:p.flightArr})
-        ),
-        React.createElement("div",null,
-          React.createElement(SH,{t:"호텔 & 이동"}),
-          React.createElement(IR,{label:"Hotel",val:p.hotelName}),
-          React.createElement(IR,{label:"Check-in",val:fmtDate(p.hotelCheckIn)}),
-          React.createElement(IR,{label:"Airport Transfer",val:p.airportTransfer})
-        )
-      ),
-      pTab==="Finance"&&React.createElement("div",null,
-        React.createElement(Btn,{onClick:()=>{setInvF({...emptyInv,patientId:p.id});setInvModal("new");},style:{marginBottom:12,fontSize:12}},"+ 청구서 추가"),
-        pInvs.map(inv=>React.createElement("div",{key:inv.id,style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:"1px solid "+BOR}},
-          React.createElement("div",{style:{fontSize:13,fontWeight:600}},"Invoice #"+inv.id.slice(-6).toUpperCase()),
-          React.createElement("div",{style:{display:"flex",gap:7,alignItems:"center"}},
-            React.createElement("span",{style:{fontWeight:700,color:"#059669"}},"$"+(inv.total||0).toLocaleString()),
-            React.createElement(Pill,{color:INV_C[inv.status]||"#64748b"},inv.status),
-            React.createElement(BtnSm,{v:"primary",onClick:()=>{setInvF(inv);setInvModal(inv.id);}},"편집")
-          )
-        )),
-        !pInvs.length&&React.createElement("div",{style:{color:TXT3,fontSize:13}},"청구서가 없습니다.")
-      ),
-      pTab==="Aftercare"&&React.createElement("div",null,
-        React.createElement("div",{style:{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}},
-          AFTERCARE_SCHEDULE.map(m=>React.createElement(Btn,{key:m,v:pAC.find(a=>a.milestone===m)?"success":"outline",onClick:()=>!pAC.find(a=>a.milestone===m)&&(saveAC([...aftercare,{id:uid(),patientId:p.id,milestone:m,status:"Pending",createdAt:new Date().toISOString()}]),toast_(m+" scheduled."))},
-            (pAC.find(a=>a.milestone===m)?"✓ ":"")+m
-          ))
-        ),
-        pAC.map(a=>React.createElement("div",{key:a.id,style:{display:"flex",justifyContent:"space-between",padding:"9px 0",borderBottom:"1px solid "+BOR}},
-          React.createElement("span",{style:{fontSize:13}},a.milestone+" follow-up"),
-          React.createElement("select",{style:{...sel,width:145},value:a.status,onChange:async e=>{saveAC(aftercare.map(x=>x.id===a.id?{...x,status:e.target.value}:x));}},
-            ["Pending","Contacted","Completed","No Response"].map(x=>React.createElement("option",{key:x},x))
-          )
-        ))
-      )
-    );
+    return <Card p={20} style={{marginTop:14,borderTop:"3px solid "+BRAND}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
+        <div>
+          <div style={{fontSize:16,fontWeight:700}}>{p.name}</div>
+          <div style={{fontSize:12,color:TXT2,marginTop:2}}>{p.dob?fmtDate(p.dob)+" · ":""}{p.age?p.age+"세 · ":""}{p.gender} · {p.language}</div>
+          <div style={{fontSize:12,color:BRAND,marginTop:2,fontWeight:500}}>{h?h.name+" · "+h.city:"병원 미배정"}{p.diagnosis&&" · "+p.diagnosis}</div>
+        </div>
+        <div style={{display:"flex",gap:7,alignItems:"center"}}>
+          <select style={{...sel,width:158}} value={p.status||"Inquiry"} onChange={e=>updateStage(p.id,e.target.value)}>{PIPELINE.map(x=><option key={x}>{x}</option>)}</select>
+          <BtnSm v="primary" onClick={()=>setEditPat(editPat&&editPat.id===p.id?null:{...p})}>{editPat&&editPat.id===p.id?"취소":"편집"}</BtnSm>
+          <BtnSm v="danger" onClick={()=>deletePat(p.id)}>삭제</BtnSm>
+          <BtnSm onClick={()=>{setSelPat(null);setEditPat(null);}}>✕</BtnSm>
+        </div>
+      </div>
+      <div style={{display:"flex",gap:4,marginBottom:14,borderBottom:"1px solid "+BOR,paddingBottom:10,flexWrap:"wrap"}}>
+        {[["Info","정보"],["Comms","커뮤니케이션"],["Travel","여행"],["Finance","재무"],["Aftercare","사후관리"]].map(([key,label])=>
+          <button key={key} style={{background:pTab===key?BRAND:"transparent",color:pTab===key?"#fff":TXT2,border:"1px solid "+(pTab===key?BRAND:BOR),borderRadius:6,padding:"5px 12px",fontSize:12,fontWeight:pTab===key?600:400,cursor:"pointer"}} onClick={()=>setPTab(key)}>{label}</button>
+        )}
+      </div>
+      {pTab==="Info"&&<div style={G2}>
+        <div><SH t="의뢰 정보"/><IR label="의뢰수신일" val={fmtDate(p.referralDate)}/><IR label="진행 현황" val={p.referralProgress}/><IR label="예약 현황" val={p.appointmentStatus}/><SH t="연락처"/><IR label="전화번호" val={p.phone}/><IR label="SNS" val={p.sns}/><IR label="이메일" val={p.email}/></div>
+        <div><SH t="진단 및 진료"/><IR label="진단명" val={p.diagnosis}/><IR label="진료과" val={p.department}/><IR label="Treatment" val={p.treatmentTag}/><SH t="여권 & 비자"/><IR label="Passport No." val={p.passportNo}/><IR label="Visa Status" val={p.visaStatus}/></div>
+      </div>}
+      {pTab==="Comms"&&<div>
+        <div style={{display:"flex",gap:8,marginBottom:12}}>
+          <select style={{...sel,width:165}} value={commChan} onChange={e=>setCommChan(e.target.value)}>{COMM_CHANNELS.map(x=><option key={x}>{x}</option>)}</select>
+          <input style={{...inp,flex:1}} placeholder="메시지 입력..." value={commText} onChange={e=>setCommText(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addComm(p.id)}/>
+          <Btn onClick={()=>addComm(p.id)}>저장</Btn>
+        </div>
+        {pComms.map(c=><div key={c.id} style={{display:"flex",gap:10,padding:"9px 0",borderBottom:"1px solid "+BOR}}><Tag>{c.channel}</Tag><div style={{flex:1}}><div style={{fontSize:13}}>{c.text}</div><div style={{fontSize:11,color:TXT2,marginTop:2}}>{fmtDT(c.createdAt)}</div></div></div>)}
+        {!pComms.length&&<div style={{color:TXT3,fontSize:13}}>내역이 없습니다.</div>}
+      </div>}
+      {pTab==="Travel"&&<div style={G2}>
+        <div><SH t="항공편"/><IR label="Arrival" val={fmtDate(p.arrivalDate)}/><IR label="Departure" val={fmtDate(p.departureDate)}/><IR label="Arrival Flight" val={p.flightArr}/></div>
+        <div><SH t="호텔 & 이동"/><IR label="Hotel" val={p.hotelName}/><IR label="Check-in" val={fmtDate(p.hotelCheckIn)}/><IR label="Airport Transfer" val={p.airportTransfer}/></div>
+      </div>}
+      {pTab==="Finance"&&<div>
+        <Btn onClick={()=>{setInvF({...emptyInv,patientId:p.id});setInvModal("new");}} style={{marginBottom:12,fontSize:12}}>+ 청구서 추가</Btn>
+        {pInvs.map(inv=><div key={inv.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:"1px solid "+BOR}}>
+          <div style={{fontSize:13,fontWeight:600}}>Invoice #{inv.id.slice(-6).toUpperCase()}</div>
+          <div style={{display:"flex",gap:7,alignItems:"center"}}><span style={{fontWeight:700,color:"#059669"}}>${(inv.total||0).toLocaleString()}</span><Pill color={INV_C[inv.status]||"#64748b"}>{inv.status}</Pill><BtnSm v="primary" onClick={()=>{setInvF(inv);setInvModal(inv.id);}}>편집</BtnSm></div>
+        </div>)}
+        {!pInvs.length&&<div style={{color:TXT3,fontSize:13}}>청구서가 없습니다.</div>}
+      </div>}
+      {pTab==="Aftercare"&&<div>
+        <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>
+          {AFTERCARE_SCHEDULE.map(m=><Btn key={m} v={pAC.find(a=>a.milestone===m)?"success":"outline"} onClick={()=>!pAC.find(a=>a.milestone===m)&&(saveAC([...aftercare,{id:uid(),patientId:p.id,milestone:m,status:"Pending",createdAt:new Date().toISOString()}]),toast_(m+" scheduled."))}>{pAC.find(a=>a.milestone===m)?"✓ ":""}{m}</Btn>)}
+        </div>
+        {pAC.map(a=><div key={a.id} style={{display:"flex",justifyContent:"space-between",padding:"9px 0",borderBottom:"1px solid "+BOR}}>
+          <span style={{fontSize:13}}>{a.milestone} follow-up</span>
+          <select style={{...sel,width:145}} value={a.status} onChange={e=>saveAC(aftercare.map(x=>x.id===a.id?{...x,status:e.target.value}:x))}>
+            {["Pending","Contacted","Completed","No Response"].map(x=><option key={x}>{x}</option>)}
+          </select>
+        </div>)}
+      </div>}
+    </Card>;
   };
 
-  // ── PIPELINE ──
-  const renderPipeline = () => React.createElement("div",{style:{overflowX:"auto"}},
-    React.createElement("div",{style:{display:"flex",gap:10,minWidth:860,alignItems:"flex-start"}},
-      PIPELINE.slice(0,9).map(stage=>{
-        const pts=patients.filter(p=>p.status===stage);
-        return React.createElement("div",{key:stage,style:{flex:1,minWidth:138,background:BG,borderRadius:12,padding:11,border:"1px solid "+BOR}},
-          React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:9}},
-            React.createElement("span",{style:{fontSize:10,fontWeight:700,color:PIPELINE_C[stage]||TXT2}},stage),
-            React.createElement("span",{style:{background:(PIPELINE_C[stage]||"#64748b")+"20",color:PIPELINE_C[stage]||"#64748b",borderRadius:20,padding:"1px 7px",fontSize:10,fontWeight:700}},pts.length)
-          ),
-          pts.map(p=>React.createElement("div",{key:p.id,onClick:()=>{setSelPat(p);setTab("Patients");},style:{background:SURF,borderRadius:8,padding:"9px 10px",marginBottom:7,cursor:"pointer",border:"1px solid "+BOR}},
-            React.createElement("div",{style:{fontWeight:600,fontSize:12}},p.name),
-            React.createElement("div",{style:{fontSize:10,color:TXT2,marginTop:2}},p.diagnosis||p.treatmentTag||"—"),
-            p.arrivalDate&&React.createElement("div",{style:{fontSize:9,color:BRAND,marginTop:3,fontWeight:500}},"↓ "+fmtDate(p.arrivalDate))
-          )),
-          !pts.length&&React.createElement("div",{style:{color:TXT3,fontSize:11,textAlign:"center",padding:"14px 0"}},"Empty")
-        );
-      })
-    )
+  const renderPipeline=()=>(
+    <div style={{overflowX:"auto"}}>
+      <div style={{display:"flex",gap:10,minWidth:860,alignItems:"flex-start"}}>
+        {PIPELINE.slice(0,9).map(stage=>{
+          const pts=patients.filter(p=>p.status===stage);
+          return <div key={stage} style={{flex:1,minWidth:138,background:BG,borderRadius:12,padding:11,border:"1px solid "+BOR}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:9}}>
+              <span style={{fontSize:10,fontWeight:700,color:PIPELINE_C[stage]||TXT2}}>{stage}</span>
+              <span style={{background:(PIPELINE_C[stage]||"#64748b")+"20",color:PIPELINE_C[stage]||"#64748b",borderRadius:20,padding:"1px 7px",fontSize:10,fontWeight:700}}>{pts.length}</span>
+            </div>
+            {pts.map(p=><div key={p.id} onClick={()=>{setSelPat(p);setTab("Patients");}} style={{background:SURF,borderRadius:8,padding:"9px 10px",marginBottom:7,cursor:"pointer",border:"1px solid "+BOR}}>
+              <div style={{fontWeight:600,fontSize:12}}>{p.name}</div>
+              <div style={{fontSize:10,color:TXT2,marginTop:2}}>{p.diagnosis||p.treatmentTag||"—"}</div>
+              {p.arrivalDate&&<div style={{fontSize:9,color:BRAND,marginTop:3,fontWeight:500}}>↓ {fmtDate(p.arrivalDate)}</div>}
+            </div>)}
+            {!pts.length&&<div style={{color:TXT3,fontSize:11,textAlign:"center",padding:"14px 0"}}>Empty</div>}
+          </div>;
+        })}
+      </div>
+    </div>
   );
 
-  // ── HOSPITALS ──
-  const [showHospForm, setShowHospForm] = React.useState(false);
-  const emptyH = { name:"", city:"Seoul", tier:"Standard", specialties:[], contactName:"", contactEmail:"", contactPhone:"", basePrice:0, active:true };
-  const [hf, setHf] = React.useState(emptyH);
-
-  const addHospital = () => {
-    if(!hf.name) return toast_("병원명을 입력하세요.","err");
-    const newH = {...hf, id:"h"+uid(), specialties: hf.specialties||[] };
-    saveH([...hospitals, newH]);
-    setHf(emptyH); setShowHospForm(false); toast_(hf.name+" 추가됨!");
-  };
-
-  const renderHospitals = () => {
+  const renderHospitals=()=>{
     const filtered=hospitals.filter(h=>!search||h.name.toLowerCase().includes(search.toLowerCase()));
-    return React.createElement("div",null,
-      React.createElement("div",{style:{display:"flex",gap:9,marginBottom:14}},
-        React.createElement("input",{style:{...inp,width:220},placeholder:"병원 검색...",value:search,onChange:e=>setSearch(e.target.value)}),
-        React.createElement(Btn,{onClick:()=>setShowHospForm(!showHospForm)},"+ 병원 추가"),
-        React.createElement("span",{style:{color:TXT2,fontSize:12,alignSelf:"center",marginLeft:"auto"}},filtered.length+" hospitals")
-      ),
-      showHospForm&&React.createElement(Card,{p:18,style:{marginBottom:16,borderTop:"3px solid "+BRAND}},
-        React.createElement("div",{style:{fontSize:14,fontWeight:700,marginBottom:14}},"새 병원 추가"),
-        React.createElement("div",{style:G3},
-          React.createElement(FG,{label:"병원명 *"},React.createElement("input",{style:inp,value:hf.name,onChange:e=>setHf(h=>({...h,name:e.target.value})),placeholder:"예: 서울대학교병원"})),
-          React.createElement(FG,{label:"도시"},React.createElement("select",{style:sel,value:hf.city,onChange:e=>setHf(h=>({...h,city:e.target.value}))},
-            ["Seoul","Busan","Incheon","Daegu","Gwangju","Daejeon","Suwon","Bundang","Jeju"].map(c=>React.createElement("option",{key:c},c))
-          )),
-          React.createElement(FG,{label:"등급"},React.createElement("select",{style:sel,value:hf.tier,onChange:e=>setHf(h=>({...h,tier:e.target.value}))},
-            ["Premium","Standard","Partner"].map(t=>React.createElement("option",{key:t},t))
-          )),
-          React.createElement(FG,{label:"담당자 이름"},React.createElement("input",{style:inp,value:hf.contactName,onChange:e=>setHf(h=>({...h,contactName:e.target.value}))})),
-          React.createElement(FG,{label:"이메일"},React.createElement("input",{style:inp,value:hf.contactEmail,onChange:e=>setHf(h=>({...h,contactEmail:e.target.value}))})),
-          React.createElement(FG,{label:"전화번호"},React.createElement("input",{style:inp,value:hf.contactPhone,onChange:e=>setHf(h=>({...h,contactPhone:e.target.value}))})),
-          React.createElement(FG,{label:"기본 가격 (USD $)"},React.createElement("input",{style:inp,type:"number",value:hf.basePrice,onChange:e=>setHf(h=>({...h,basePrice:Number(e.target.value)}))})),
-          React.createElement(FG,{label:"진료과 (쉼표로 구분)"},React.createElement("input",{style:inp,value:(hf.specialties||[]).join(", "),onChange:e=>setHf(h=>({...h,specialties:e.target.value.split(",").map(s=>s.trim()).filter(Boolean)})),placeholder:"예: Cardiology, Oncology"}))
-        ),
-        React.createElement("div",{style:{display:"flex",gap:8}},
-          React.createElement(Btn,{onClick:addHospital},"저장"),
-          React.createElement(Btn,{v:"outline",onClick:()=>setShowHospForm(false)},"취소")
-        )
-      ),
-      React.createElement("div",{style:{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:14}},
-        filtered.map(h=>{
-          const cnt=patients.filter(p=>p.hospitalId===h.id).length;
-          return React.createElement("div",{key:h.id,onClick:()=>setSelHosp(selHosp&&selHosp.id===h.id?null:h),style:{background:SURF,border:"1.5px solid "+(selHosp&&selHosp.id===h.id?BRAND:BOR),borderRadius:11,padding:14,cursor:"pointer"}},
-            React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:7}},
-              React.createElement("div",{style:{fontSize:13,fontWeight:600,flex:1,lineHeight:1.3}},h.name),
-              React.createElement(Pill,{color:TIER_C[h.tier]||"#64748b"},h.tier)
-            ),
-            React.createElement("div",{style:{fontSize:12,color:TXT2,marginBottom:7}},h.city," · ",cnt,"명"),
-            React.createElement("div",{style:{display:"flex",flexWrap:"wrap",gap:4}},
-              (h.specialties||[]).slice(0,3).map(sp=>React.createElement(Tag,{key:sp},sp))
-            )
-          );
-        })
-      ),
-      selHosp&&React.createElement(Card,{p:20,style:{marginTop:14,borderTop:"3px solid "+BRAND}},
-        React.createElement("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:12}},
-          React.createElement("div",null,React.createElement("div",{style:{fontSize:15,fontWeight:700}},selHosp.name),React.createElement("div",{style:{fontSize:12,color:TXT2}},selHosp.city)),
-          React.createElement(BtnSm,{onClick:()=>setSelHosp(null)},"✕")
-        ),
-        React.createElement(IR,{label:"Contact",val:selHosp.contactName}),
-        React.createElement(IR,{label:"Email",val:selHosp.contactEmail}),
-        React.createElement(IR,{label:"Phone",val:selHosp.contactPhone}),
-        React.createElement(IR,{label:"Base Price",val:selHosp.basePrice?"$"+selHosp.basePrice.toLocaleString():null}),
-        React.createElement("div",{style:{marginTop:12}},React.createElement(SH,{t:"이 병원의 환자"})),
-        patients.filter(p=>p.hospitalId===selHosp.id).map(p=>React.createElement("div",{key:p.id,style:{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:"1px solid "+BOR,cursor:"pointer"},onClick:()=>{setSelPat(p);setTab("Patients");}},
-          React.createElement("span",{style:{fontSize:13,fontWeight:500}},p.name),
-          React.createElement(Pill,{color:PIPELINE_C[p.status]||"#64748b"},p.status||"Inquiry")
-        )),
-        !patients.filter(p=>p.hospitalId===selHosp.id).length&&React.createElement("div",{style:{color:TXT3,fontSize:13}},"환자가 없습니다.")
-      )
+    return (
+      <div>
+        <div style={{display:"flex",gap:9,marginBottom:14,flexWrap:"wrap",alignItems:"center"}}>
+          <input style={{...inp,width:220}} placeholder="병원 검색..." value={search} onChange={e=>setSearch(e.target.value)}/>
+          <Btn onClick={()=>setShowHospForm(!showHospForm)}>+ 병원 추가</Btn>
+          <span style={{color:TXT2,fontSize:12,marginLeft:"auto"}}>{filtered.length} hospitals</span>
+        </div>
+        {showHospForm&&<Card p={18} style={{marginBottom:16,borderTop:"3px solid "+BRAND}}>
+          <div style={{fontSize:14,fontWeight:700,marginBottom:14}}>새 병원 추가</div>
+          <div style={G3}>
+            <FG label="병원명 *"><input style={inp} value={hf.name} onChange={e=>setHf(h=>({...h,name:e.target.value}))} placeholder="예: 서울대학교병원"/></FG>
+            <FG label="도시"><select style={sel} value={hf.city} onChange={e=>setHf(h=>({...h,city:e.target.value}))}>
+              {["Seoul","Busan","Incheon","Daegu","Gwangju","Daejeon","Suwon","Bundang","Bucheon","Jeju"].map(c=><option key={c}>{c}</option>)}
+            </select></FG>
+            <FG label="등급"><select style={sel} value={hf.tier} onChange={e=>setHf(h=>({...h,tier:e.target.value}))}>
+              {["Premium","Standard","Partner"].map(t=><option key={t}>{t}</option>)}
+            </select></FG>
+            <FG label="담당자 이름"><input style={inp} value={hf.contactName} onChange={e=>setHf(h=>({...h,contactName:e.target.value}))}/></FG>
+            <FG label="이메일"><input style={inp} value={hf.contactEmail} onChange={e=>setHf(h=>({...h,contactEmail:e.target.value}))}/></FG>
+            <FG label="전화번호"><input style={inp} value={hf.contactPhone} onChange={e=>setHf(h=>({...h,contactPhone:e.target.value}))}/></FG>
+          </div>
+          <FG label="진료과 (쉼표로 구분)"><input style={inp} value={(hf.specialties||[]).join(", ")} onChange={e=>setHf(h=>({...h,specialties:e.target.value.split(",").map(s=>s.trim()).filter(Boolean)}))} placeholder="예: Cardiology, Oncology"/></FG>
+          <div style={{display:"flex",gap:8}}><Btn onClick={addHospital}>저장</Btn><Btn v="outline" onClick={()=>setShowHospForm(false)}>취소</Btn></div>
+        </Card>}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:14}}>
+          {filtered.map(h=>{
+            const cnt=patients.filter(p=>p.hospitalId===h.id).length;
+            return <div key={h.id} onClick={()=>setSelHosp(selHosp&&selHosp.id===h.id?null:h)} style={{background:SURF,border:"1.5px solid "+(selHosp&&selHosp.id===h.id?BRAND:BOR),borderRadius:11,padding:14,cursor:"pointer"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:7}}>
+                <div style={{fontSize:13,fontWeight:600,flex:1,lineHeight:1.3}}>{h.name}</div>
+                <Pill color={TIER_C[h.tier]||"#64748b"}>{h.tier}</Pill>
+              </div>
+              <div style={{fontSize:12,color:TXT2,marginBottom:7}}>{h.city} · {cnt}명</div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:4}}>{(h.specialties||[]).slice(0,3).map(sp=><Tag key={sp}>{sp}</Tag>)}</div>
+            </div>;
+          })}
+        </div>
+        {selHosp&&<Card p={20} style={{marginTop:14,borderTop:"3px solid "+BRAND}}>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}>
+            <div><div style={{fontSize:15,fontWeight:700}}>{selHosp.name}</div><div style={{fontSize:12,color:TXT2}}>{selHosp.city} · <Pill color={TIER_C[selHosp.tier]||"#64748b"}>{selHosp.tier}</Pill></div></div>
+            <div style={{display:"flex",gap:7}}>
+              <BtnSm v="danger" onClick={()=>{if(!confirm("삭제?"))return;saveH(hospitals.filter(h=>h.id!==selHosp.id));setSelHosp(null);}}>삭제</BtnSm>
+              <BtnSm onClick={()=>setSelHosp(null)}>✕</BtnSm>
+            </div>
+          </div>
+          <IR label="Contact" val={selHosp.contactName}/><IR label="Email" val={selHosp.contactEmail}/><IR label="Phone" val={selHosp.contactPhone}/>
+          <div style={{marginTop:12}}><SH t="이 병원의 환자"/></div>
+          {patients.filter(p=>p.hospitalId===selHosp.id).map(p=><div key={p.id} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:"1px solid "+BOR,cursor:"pointer"}} onClick={()=>{setSelPat(p);setTab("Patients");}}>
+            <span style={{fontSize:13,fontWeight:500}}>{p.name}</span><Pill color={PIPELINE_C[p.status]||"#64748b"}>{p.status||"Inquiry"}</Pill>
+          </div>)}
+          {!patients.filter(p=>p.hospitalId===selHosp.id).length&&<div style={{color:TXT3,fontSize:13}}>환자가 없습니다.</div>}
+        </Card>}
+      </div>
     );
   };
 
-  // ── COMMUNICATIONS ──
-  const renderComms = () => React.createElement("div",{style:G2},
-    React.createElement("div",null,
-      React.createElement(Card,{p:18,style:{marginBottom:14}},
-        React.createElement("div",{style:{fontSize:13,fontWeight:600,marginBottom:12}},"커뮤니케이션 기록"),
-        React.createElement(FG,{label:"환자"},React.createElement("select",{style:sel,value:commTarget,onChange:e=>setCommTarget(e.target.value)},React.createElement("option",{value:""},"환자 선택"),patients.map(p=>React.createElement("option",{key:p.id,value:p.id},p.name)))),
-        React.createElement(FG,{label:"채널"},React.createElement("select",{style:sel,value:commChan,onChange:e=>setCommChan(e.target.value)},COMM_CHANNELS.map(x=>React.createElement("option",{key:x},x)))),
-        React.createElement(FG,{label:"내용"},React.createElement("textarea",{style:{...inp,height:80,resize:"vertical"},value:commText,onChange:e=>setCommText(e.target.value)})),
-        React.createElement(Btn,{onClick:()=>commTarget&&commText.trim()&&addComm(commTarget)},"저장")
-      ),
-      React.createElement(Card,{p:18},
-        React.createElement("div",{style:{fontSize:13,fontWeight:600,marginBottom:12}},"전체 커뮤니케이션"),
-        [...comms].sort((a,b)=>b.createdAt>a.createdAt?1:-1).slice(0,20).map(c=>{
-          const p=patients.find(pt=>pt.id===c.patientId);
-          return React.createElement("div",{key:c.id,style:{display:"flex",gap:10,padding:"9px 0",borderBottom:"1px solid "+BOR}},
-            React.createElement(Tag,null,c.channel),
-            React.createElement("div",{style:{flex:1}},React.createElement("div",{style:{fontSize:12,fontWeight:500,color:BRAND}},p?p.name:"—"),React.createElement("div",{style:{fontSize:13}},c.text),React.createElement("div",{style:{fontSize:11,color:TXT2,marginTop:2}},fmtDT(c.createdAt)))
-          );
-        }),
-        !comms.length&&React.createElement("div",{style:{color:TXT3,fontSize:13}},"기록이 없습니다.")
-      )
-    ),
-    React.createElement(Card,{p:18},
-      React.createElement("div",{style:{fontSize:13,fontWeight:600,marginBottom:4}},"AI 번역"),
-      React.createElement("div",{style:{fontSize:12,color:TXT2,marginBottom:14}},"Claude AI를 통한 몽골어↔한국어↔영어 번역"),
-      React.createElement("div",{style:{background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:9,padding:16,textAlign:"center"}},
-        React.createElement("div",{style:{fontSize:13,color:"#15803d",fontWeight:600}},"✓ AI 번역 기능"),
-        React.createElement("div",{style:{fontSize:12,color:"#166534",marginTop:6}},"커뮤니케이션 탭에서 환자 선택 후 메모를 기록하세요")
-      )
-    )
+  const renderComms=()=>(
+    <div style={G2}>
+      <div>
+        <Card p={18} style={{marginBottom:14}}>
+          <div style={{fontSize:13,fontWeight:600,marginBottom:12}}>커뮤니케이션 기록</div>
+          <FG label="환자"><select style={sel} value={commTarget} onChange={e=>setCommTarget(e.target.value)}><option value="">환자 선택</option>{patients.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></FG>
+          <FG label="채널"><select style={sel} value={commChan} onChange={e=>setCommChan(e.target.value)}>{COMM_CHANNELS.map(x=><option key={x}>{x}</option>)}</select></FG>
+          <FG label="내용"><textarea style={{...inp,height:80,resize:"vertical"}} value={commText} onChange={e=>setCommText(e.target.value)}/></FG>
+          <Btn onClick={()=>commTarget&&commText.trim()&&addComm(commTarget)}>저장</Btn>
+        </Card>
+        <Card p={18}>
+          <div style={{fontSize:13,fontWeight:600,marginBottom:12}}>전체 커뮤니케이션</div>
+          {[...comms].sort((a,b)=>b.createdAt>a.createdAt?1:-1).slice(0,20).map(c=>{
+            const p=patients.find(pt=>pt.id===c.patientId);
+            return <div key={c.id} style={{display:"flex",gap:10,padding:"9px 0",borderBottom:"1px solid "+BOR}}>
+              <Tag>{c.channel}</Tag>
+              <div style={{flex:1}}><div style={{fontSize:12,fontWeight:500,color:BRAND}}>{p?p.name:"—"}</div><div style={{fontSize:13}}>{c.text}</div><div style={{fontSize:11,color:TXT2,marginTop:2}}>{fmtDT(c.createdAt)}</div></div>
+            </div>;
+          })}
+          {!comms.length&&<div style={{color:TXT3,fontSize:13}}>기록이 없습니다.</div>}
+        </Card>
+      </div>
+      <Card p={18}>
+        <div style={{fontSize:13,fontWeight:600,marginBottom:12}}>빠른 메모</div>
+        <div style={{background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:9,padding:16}}>
+          <div style={{fontSize:13,color:"#15803d",fontWeight:600}}>✓ 커뮤니케이션 기록</div>
+          <div style={{fontSize:12,color:"#166534",marginTop:6}}>좌측에서 환자를 선택하고 채널과 내용을 입력하세요</div>
+        </div>
+      </Card>
+    </div>
   );
 
-  // ── TRAVEL ──
-  const renderTravel = () => {
+  const renderTravel=()=>{
     const tPts=patients.filter(p=>p.arrivalDate||p.departureDate).sort((a,b)=>a.arrivalDate>b.arrivalDate?1:-1);
-    return React.createElement("div",null,
-      React.createElement("div",{style:{...G4,marginBottom:18}},
-        React.createElement(StatCard,{label:"비자 대기",value:patients.filter(p=>["Not Applied","Applied"].includes(p.visaStatus)).length,color:"#f59e0b"}),
-        React.createElement(StatCard,{label:"비자 승인",value:patients.filter(p=>p.visaStatus==="Approved").length,color:"#10b981"}),
-        React.createElement(StatCard,{label:"이번 주 입국",value:patients.filter(p=>p.arrivalDate>=todayStr()&&p.arrivalDate<=addDays(todayStr(),7)).length,color:BRAND}),
-        React.createElement(StatCard,{label:"공항 픽업",value:patients.filter(p=>p.airportTransfer&&p.airportTransfer!=="Not Required").length,color:"#8b5cf6"})
-      ),
-      React.createElement(Card,{p:0,style:{overflow:"hidden"}},
-        React.createElement("table",{style:{width:"100%",borderCollapse:"collapse"}},
-          React.createElement("thead",null,React.createElement("tr",null,["환자","병원","입국","출국","비자","단계",""].map(h=>React.createElement("th",{key:h,style:{textAlign:"left",fontSize:10,color:TXT3,fontWeight:600,padding:"9px 12px",borderBottom:"1px solid "+BOR,background:BG,textTransform:"uppercase"}},h)))),
-          React.createElement("tbody",null,
-            tPts.length?tPts.map(p=>{
-              const h=hospitals.find(h=>h.id===p.hospitalId);
-              return React.createElement("tr",{key:p.id,style:{background:SURF}},
-                React.createElement("td",{style:td0},React.createElement("div",{style:{fontWeight:600}},p.name)),
-                React.createElement("td",{style:td0},h?h.name:"—"),
-                React.createElement("td",{style:td0},"↓ "+fmtDate(p.arrivalDate)),
-                React.createElement("td",{style:td0},"↑ "+fmtDate(p.departureDate)),
-                React.createElement("td",{style:td0},React.createElement(Pill,{color:p.visaStatus==="Approved"?"#10b981":"#94a3b8"},p.visaStatus||"—")),
-                React.createElement("td",{style:td0},React.createElement(Pill,{color:PIPELINE_C[p.status]||"#64748b"},p.status||"—")),
-                React.createElement("td",{style:td0},React.createElement(BtnSm,{v:"primary",onClick:()=>{setSelPat(p);setPTab("Travel");setTab("Patients");}},"보기"))
-              );
-            }):React.createElement("tr",null,React.createElement("td",{colSpan:7,style:{...td0,textAlign:"center",color:TXT3,padding:28}},"여행 기록 없음"))
-          )
-        )
-      )
+    return (
+      <div>
+        <div style={{...G4,marginBottom:18}}>
+          <StatCard label="비자 대기" value={patients.filter(p=>["Not Applied","Applied"].includes(p.visaStatus)).length} color="#f59e0b"/>
+          <StatCard label="비자 승인" value={patients.filter(p=>p.visaStatus==="Approved").length} color="#10b981"/>
+          <StatCard label="이번 주 입국" value={patients.filter(p=>p.arrivalDate>=todayStr()&&p.arrivalDate<=addDays(todayStr(),7)).length} color={BRAND}/>
+          <StatCard label="공항 픽업" value={patients.filter(p=>p.airportTransfer&&p.airportTransfer!=="Not Required").length} color="#8b5cf6"/>
+        </div>
+        <Card p={0} style={{overflow:"hidden"}}>
+          <table style={{width:"100%",borderCollapse:"collapse"}}>
+            <thead><tr>{["환자","병원","입국","출국","비자","단계",""].map(h=><th key={h} style={{textAlign:"left",fontSize:10,color:TXT3,fontWeight:600,padding:"9px 12px",borderBottom:"1px solid "+BOR,background:BG,textTransform:"uppercase"}}>{h}</th>)}</tr></thead>
+            <tbody>
+              {tPts.length?tPts.map(p=>{const h=hospitals.find(h=>h.id===p.hospitalId);return <tr key={p.id}>
+                <td style={td0}><div style={{fontWeight:600}}>{p.name}</div></td>
+                <td style={td0}>{h?h.name:"—"}</td>
+                <td style={td0}>↓ {fmtDate(p.arrivalDate)}</td>
+                <td style={td0}>↑ {fmtDate(p.departureDate)}</td>
+                <td style={td0}><Pill color={p.visaStatus==="Approved"?"#10b981":"#94a3b8"}>{p.visaStatus||"—"}</Pill></td>
+                <td style={td0}><Pill color={PIPELINE_C[p.status]||"#64748b"}>{p.status||"—"}</Pill></td>
+                <td style={td0}><BtnSm v="primary" onClick={()=>{setSelPat(p);setPTab("Travel");setTab("Patients");}}>보기</BtnSm></td>
+              </tr>;}):
+              <tr><td colSpan={7} style={{...td0,textAlign:"center",color:TXT3,padding:28}}>여행 기록 없음</td></tr>}
+            </tbody>
+          </table>
+        </Card>
+      </div>
     );
   };
 
-  // ── FINANCE ──
-  const renderFinance = () => {
+  const renderFinance=()=>{
     const pend=invoices.filter(i=>["Sent","Partially Paid","Overdue"].includes(i.status)).reduce((s,i)=>s+i.total,0);
-    return React.createElement("div",null,
-      React.createElement("div",{style:{...G4,marginBottom:18}},
-        React.createElement(StatCard,{label:"총 수익",value:"$"+paid.toLocaleString(),color:"#10b981"}),
-        React.createElement(StatCard,{label:"미수금",value:"$"+pend.toLocaleString(),color:"#f59e0b"}),
-        React.createElement(StatCard,{label:"청구서 수",value:invoices.length,color:BRAND}),
-        React.createElement("div",{style:{background:SURF,border:"1px solid "+BOR,borderRadius:12,padding:"16px 18px",display:"flex",alignItems:"center",justifyContent:"center"}},
-          React.createElement(Btn,{onClick:()=>{setInvF(emptyInv);setInvModal("new");}},"+ 청구서")
-        )
-      ),
-      React.createElement(Card,{p:0,style:{overflow:"hidden"}},
-        React.createElement("table",{style:{width:"100%",borderCollapse:"collapse"}},
-          React.createElement("thead",null,React.createElement("tr",null,["Invoice","환자","Due","합계","상태",""].map(h=>React.createElement("th",{key:h,style:{textAlign:"left",fontSize:10,color:TXT3,fontWeight:600,padding:"9px 12px",borderBottom:"1px solid "+BOR,background:BG,textTransform:"uppercase"}},h)))),
-          React.createElement("tbody",null,
-            invoices.length?[...invoices].sort((a,b)=>b.createdAt>a.createdAt?1:-1).map(inv=>{
-              const p=patients.find(p=>p.id===inv.patientId);
-              return React.createElement("tr",{key:inv.id,style:{background:SURF}},
-                React.createElement("td",{style:td0},React.createElement("span",{style:{fontFamily:"monospace",fontSize:12,fontWeight:600,color:BRAND}},"#"+inv.id.slice(-6).toUpperCase())),
-                React.createElement("td",{style:td0},p?p.name:"—"),
-                React.createElement("td",{style:td0},fmtDate(inv.dueDate)),
-                React.createElement("td",{style:td0},React.createElement("span",{style:{fontWeight:700,color:"#059669"}},"$"+(inv.total||0).toLocaleString())),
-                React.createElement("td",{style:td0},React.createElement(Pill,{color:INV_C[inv.status]||"#64748b"},inv.status)),
-                React.createElement("td",{style:td0},
-                  React.createElement("div",{style:{display:"flex",gap:5}},
-                    React.createElement(BtnSm,{v:"primary",onClick:()=>{setInvF(inv);setInvModal(inv.id);}},"편집"),
-                    React.createElement(BtnSm,{v:"danger",onClick:()=>{saveInv(invoices.filter(i=>i.id!==inv.id));toast_("삭제.");}},"삭제")
-                  )
-                )
-              );
-            }):React.createElement("tr",null,React.createElement("td",{colSpan:6,style:{...td0,textAlign:"center",color:TXT3,padding:28}},"청구서 없음"))
-          )
-        )
-      )
+    return (
+      <div>
+        <div style={{...G4,marginBottom:18}}>
+          <StatCard label="총 수익" value={"$"+paid.toLocaleString()} color="#10b981"/>
+          <StatCard label="미수금" value={"$"+pend.toLocaleString()} color="#f59e0b"/>
+          <StatCard label="청구서 수" value={invoices.length} color={BRAND}/>
+          <div style={{background:SURF,border:"1px solid "+BOR,borderRadius:12,padding:"16px 18px",display:"flex",alignItems:"center",justifyContent:"center"}}><Btn onClick={()=>{setInvF(emptyInv);setInvModal("new");}}>+ 청구서</Btn></div>
+        </div>
+        <Card p={0} style={{overflow:"hidden"}}>
+          <table style={{width:"100%",borderCollapse:"collapse"}}>
+            <thead><tr>{["Invoice","환자","Due","합계","상태",""].map(h=><th key={h} style={{textAlign:"left",fontSize:10,color:TXT3,fontWeight:600,padding:"9px 12px",borderBottom:"1px solid "+BOR,background:BG,textTransform:"uppercase"}}>{h}</th>)}</tr></thead>
+            <tbody>
+              {invoices.length?[...invoices].sort((a,b)=>b.createdAt>a.createdAt?1:-1).map(inv=>{const p=patients.find(p=>p.id===inv.patientId);return <tr key={inv.id}>
+                <td style={td0}><span style={{fontFamily:"monospace",fontSize:12,fontWeight:600,color:BRAND}}>#{inv.id.slice(-6).toUpperCase()}</span></td>
+                <td style={td0}>{p?p.name:"—"}</td>
+                <td style={td0}>{fmtDate(inv.dueDate)}</td>
+                <td style={td0}><span style={{fontWeight:700,color:"#059669"}}>${(inv.total||0).toLocaleString()}</span></td>
+                <td style={td0}><Pill color={INV_C[inv.status]||"#64748b"}>{inv.status}</Pill></td>
+                <td style={td0}><div style={{display:"flex",gap:5}}><BtnSm v="primary" onClick={()=>{setInvF(inv);setInvModal(inv.id);}}>편집</BtnSm><BtnSm v="danger" onClick={()=>{saveInv(invoices.filter(i=>i.id!==inv.id));toast_("삭제.");}}>삭제</BtnSm></div></td>
+              </tr>;}):
+              <tr><td colSpan={6} style={{...td0,textAlign:"center",color:TXT3,padding:28}}>청구서 없음</td></tr>}
+            </tbody>
+          </table>
+        </Card>
+      </div>
     );
   };
 
-  // ── REPORTS ──
-  const renderReports = () => {
+  const renderReports=()=>{
     const bySource={};LEAD_SOURCES.forEach(x=>{bySource[x]=leads.filter(l=>l.source===x).length;});
     const byHosp=hospitals.map(h=>({h,cnt:patients.filter(p=>p.hospitalId===h.id).length})).filter(x=>x.cnt>0).sort((a,b)=>b.cnt-a.cnt);
     const maxH=Math.max(...byHosp.map(x=>x.cnt),1);
@@ -801,136 +704,137 @@ function App() {
       const rows=patients.map(p=>{const h=hospitals.find(h=>h.id===p.hospitalId);return[p.name,p.dob,p.phone,p.sns,p.referralDate,p.diagnosis,p.department,h?h.name:"",p.status||"",p.arrivalDate,p.departureDate,p.visaStatus].map(v=>'"'+(v||"").toString().replace(/"/g,'""')+'"').join(",");});
       const a=document.createElement("a");a.href="data:text/csv;charset=utf-8,"+encodeURIComponent([cols.join(","),...rows].join("\n"));a.download="gerel_patients.csv";a.click();
     };
-    return React.createElement("div",null,
-      React.createElement("div",{style:{...G4,marginBottom:18}},
-        React.createElement(StatCard,{label:"총 리드",value:leads.length,color:"#f59e0b"}),
-        React.createElement(StatCard,{label:"전환율",value:conv+"%",color:"#8b5cf6"}),
-        React.createElement(StatCard,{label:"총 수익",value:"$"+paid.toLocaleString(),color:"#10b981"}),
-        React.createElement(StatCard,{label:"총 환자",value:patients.length,color:BRAND})
-      ),
-      React.createElement("div",{style:{marginBottom:18}},React.createElement(Btn,{onClick:csvP},"⬇ 환자 CSV 내보내기")),
-      React.createElement("div",{style:G2},
-        React.createElement(Card,{p:18},React.createElement("div",{style:{fontSize:13,fontWeight:600,marginBottom:12}},"리드 소스별"),
-          Object.entries(bySource).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).map(([src,cnt])=>React.createElement("div",{key:src,style:{marginBottom:9}},
-            React.createElement("div",{style:{display:"flex",justifyContent:"space-between",fontSize:13,marginBottom:4}},React.createElement("span",null,src),React.createElement("span",{style:{fontWeight:600}},cnt)),
-            React.createElement("div",{style:{background:BOR,borderRadius:4,height:6}},React.createElement("div",{style:{width:Math.round(cnt/maxS*100)+"%",height:"100%",background:BRAND,borderRadius:4}}))
-          ))
-        ),
-        React.createElement(Card,{p:18},React.createElement("div",{style:{fontSize:13,fontWeight:600,marginBottom:12}},"병원별 환자"),
-          byHosp.slice(0,8).map(({h,cnt})=>React.createElement("div",{key:h.id,style:{marginBottom:9}},
-            React.createElement("div",{style:{display:"flex",justifyContent:"space-between",fontSize:13,marginBottom:4}},React.createElement("span",{style:{fontWeight:500}},h.name),React.createElement("span",{style:{fontWeight:600}},cnt)),
-            React.createElement("div",{style:{background:BOR,borderRadius:4,height:6}},React.createElement("div",{style:{width:Math.round(cnt/maxH*100)+"%",height:"100%",background:"#10b981",borderRadius:4}}))
-          )),
-          !byHosp.length&&React.createElement("div",{style:{color:TXT3,fontSize:13}},"데이터 없음")
-        )
-      )
+    return (
+      <div>
+        <div style={{...G4,marginBottom:18}}>
+          <StatCard label="총 리드" value={leads.length} color="#f59e0b"/>
+          <StatCard label="전환율" value={conv+"%"} color="#8b5cf6"/>
+          <StatCard label="총 수익" value={"$"+paid.toLocaleString()} color="#10b981"/>
+          <StatCard label="총 환자" value={patients.length} color={BRAND}/>
+        </div>
+        <div style={{marginBottom:18}}><Btn onClick={csvP}>⬇ 환자 CSV 내보내기</Btn></div>
+        <div style={G2}>
+          <Card p={18}>
+            <div style={{fontSize:13,fontWeight:600,marginBottom:12}}>리드 소스별</div>
+            {Object.entries(bySource).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).map(([src,cnt])=><div key={src} style={{marginBottom:9}}>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:13,marginBottom:4}}><span>{src}</span><span style={{fontWeight:600}}>{cnt}</span></div>
+              <div style={{background:BOR,borderRadius:4,height:6}}><div style={{width:Math.round(cnt/maxS*100)+"%",height:"100%",background:BRAND,borderRadius:4}}/></div>
+            </div>)}
+          </Card>
+          <Card p={18}>
+            <div style={{fontSize:13,fontWeight:600,marginBottom:12}}>병원별 환자</div>
+            {byHosp.slice(0,8).map(({h,cnt})=><div key={h.id} style={{marginBottom:9}}>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:13,marginBottom:4}}><span style={{fontWeight:500}}>{h.name}</span><span style={{fontWeight:600}}>{cnt}</span></div>
+              <div style={{background:BOR,borderRadius:4,height:6}}><div style={{width:Math.round(cnt/maxH*100)+"%",height:"100%",background:"#10b981",borderRadius:4}}/></div>
+            </div>)}
+            {!byHosp.length&&<div style={{color:TXT3,fontSize:13}}>데이터 없음</div>}
+          </Card>
+        </div>
+      </div>
     );
   };
 
-  // ── IMPORT MODAL ──
-  const renderImportModal = () => {
+  const renderImportModal=()=>{
     const FIELD_LABELS={name:"환자명",phone:"전화번호",sns:"SNS",dob:"생년월일",age:"나이",gender:"성별",referralDate:"의뢰수신일",diagnosis:"진단명",department:"진료과",hospitalName:"선택병원",status:"단계"};
     const validRows=importPreview.filter(row=>importCols.name&&(row[importCols.name]||"").trim());
-    return React.createElement("div",{style:{position:"fixed",inset:0,background:"rgba(15,23,42,0.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2000,padding:16}},
-      React.createElement("div",{style:{background:SURF,borderRadius:14,width:"100%",maxWidth:680,maxHeight:"88vh",overflow:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}},
-        React.createElement("div",{style:{padding:"18px 22px",borderBottom:"1px solid "+BOR,display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,background:SURF}},
-          React.createElement("div",{style:{fontSize:15,fontWeight:700}},"CSV 파일 임포트"),
-          React.createElement(BtnSm,{v:"danger",onClick:()=>{setShowImport(false);setImportStep(1);setImportPreview([]);}},"✕ 닫기")
-        ),
-        React.createElement("div",{style:{padding:22}},
-          importStep===1&&React.createElement("div",{style:{textAlign:"center",padding:"32px 16px"}},
-            React.createElement("div",{style:{fontSize:44,marginBottom:14}},"📂"),
-            React.createElement("div",{style:{fontSize:15,fontWeight:600,marginBottom:22}},"CSV 파일 업로드"),
-            React.createElement("input",{ref:importRef,type:"file",accept:".csv,.txt",style:{display:"block",margin:"0 auto 16px",fontSize:13},onChange:e=>{if(e.target.files&&e.target.files[0])handleImportFile();}}),
-            React.createElement("div",{style:{fontSize:12,color:TXT3}},"Excel → 파일 → 다른 이름으로 저장 → CSV UTF-8")
-          ),
-          importStep===2&&React.createElement("div",null,
-            React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:18}},
-              importHeaders.map(h=>React.createElement("div",{key:h,style:{background:BG,borderRadius:8,padding:"9px 11px",border:"1px solid "+BOR}},
-                React.createElement("div",{style:{fontSize:11,fontWeight:600,color:TXT2,marginBottom:5}},"열: ",React.createElement("span",{style:{color:TXT}},h)),
-                React.createElement("select",{style:{...sel,fontSize:12,padding:"5px 9px"},value:Object.entries(importCols).find(([,v])=>v===h)?.[0]||"",onChange:e=>{const nm={...importCols};Object.keys(nm).forEach(k=>{if(nm[k]===h)delete nm[k];});if(e.target.value)nm[e.target.value]=h;setImportCols(nm);}},
-                  React.createElement("option",{value:""},"— 건너뜀 —"),
-                  Object.keys(FIELD_LABELS).map(f=>React.createElement("option",{key:f,value:f},FIELD_LABELS[f]))
-                )
-              ))
-            ),
-            React.createElement("div",{style:{background:BRAND_L,border:"1px solid "+BRAND_M,borderRadius:9,padding:"12px 16px",marginBottom:16}},
-              React.createElement("div",{style:{fontWeight:700,color:BRAND,marginBottom:6}},"임포트 요약"),
-              React.createElement("div",null,React.createElement("span",{style:{fontWeight:700,fontSize:18}},validRows.length)," 명 임포트 예정")
-            ),
-            React.createElement("div",{style:{display:"flex",gap:9}},
-              React.createElement(Btn,{onClick:doImport},validRows.length+"명 임포트"),
-              React.createElement(Btn,{v:"outline",onClick:()=>{setImportStep(1);setImportPreview([]);}},"다른 파일")
-            )
-          )
-        )
-      )
-    );
+    return <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2000,padding:16}}>
+      <div style={{background:SURF,borderRadius:14,width:"100%",maxWidth:680,maxHeight:"88vh",overflow:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
+        <div style={{padding:"18px 22px",borderBottom:"1px solid "+BOR,display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,background:SURF}}>
+          <div style={{fontSize:15,fontWeight:700}}>CSV 파일 임포트</div>
+          <BtnSm v="danger" onClick={()=>{setShowImport(false);setImportStep(1);setImportPreview([]);}}>✕ 닫기</BtnSm>
+        </div>
+        <div style={{padding:22}}>
+          {importStep===1&&<div style={{textAlign:"center",padding:"32px 16px"}}>
+            <div style={{fontSize:44,marginBottom:14}}>📂</div>
+            <div style={{fontSize:15,fontWeight:600,marginBottom:22}}>CSV 파일 업로드</div>
+            <input ref={importRef} type="file" accept=".csv,.txt" style={{display:"block",margin:"0 auto 16px",fontSize:13}} onChange={e=>{if(e.target.files&&e.target.files[0])handleImportFile();}}/>
+            <div style={{fontSize:12,color:TXT3}}>Excel → 파일 → 다른 이름으로 저장 → CSV UTF-8</div>
+          </div>}
+          {importStep===2&&<div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:18}}>
+              {importHeaders.map(h=><div key={h} style={{background:BG,borderRadius:8,padding:"9px 11px",border:"1px solid "+BOR}}>
+                <div style={{fontSize:11,fontWeight:600,color:TXT2,marginBottom:5}}>열: <span style={{color:TXT}}>{h}</span></div>
+                <select style={{...sel,fontSize:12,padding:"5px 9px"}} value={Object.entries(importCols).find(([,v])=>v===h)?.[0]||""} onChange={e=>{const nm={...importCols};Object.keys(nm).forEach(k=>{if(nm[k]===h)delete nm[k];});if(e.target.value)nm[e.target.value]=h;setImportCols(nm);}}>
+                  <option value="">— 건너뜀 —</option>
+                  {Object.keys(FIELD_LABELS).map(f=><option key={f} value={f}>{FIELD_LABELS[f]}</option>)}
+                </select>
+              </div>)}
+            </div>
+            <div style={{background:BRAND_L,border:"1px solid "+BRAND_M,borderRadius:9,padding:"12px 16px",marginBottom:16}}>
+              <div style={{fontWeight:700,color:BRAND,marginBottom:6}}>임포트 요약</div>
+              <div><span style={{fontWeight:700,fontSize:18}}>{validRows.length}</span> 명 임포트 예정</div>
+            </div>
+            <div style={{display:"flex",gap:9}}>
+              <Btn onClick={doImport}>{validRows.length}명 임포트</Btn>
+              <Btn v="outline" onClick={()=>{setImportStep(1);setImportPreview([]);}}>다른 파일</Btn>
+            </div>
+          </div>}
+        </div>
+      </div>
+    </div>;
   };
 
-  // ── INVOICE MODAL ──
-  const renderInvModal = () => {
-    if(!invModal) return null;
+  const renderInvModal=()=>{
+    if(!invModal)return null;
     const total=(invF.items||[]).reduce((s,i)=>s+(Number(i.qty)||0)*(Number(i.price)||0),0);
-    return React.createElement("div",{style:{position:"fixed",inset:0,background:"rgba(15,23,42,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000}},
-      React.createElement(Card,{p:22,style:{width:510,maxHeight:"88vh",overflow:"auto"}},
-        React.createElement("div",{style:{fontSize:14,fontWeight:700,marginBottom:16}},invModal==="new"?"새 청구서":"청구서 편집"),
-        React.createElement(FG,{label:"환자"},React.createElement("select",{style:sel,value:invF.patientId,onChange:e=>setInvF(f=>({...f,patientId:e.target.value}))},React.createElement("option",{value:""},"선택"),patients.map(p=>React.createElement("option",{key:p.id,value:p.id},p.name)))),
-        React.createElement("div",{style:G2},
-          React.createElement(FG,{label:"상태"},React.createElement("select",{style:sel,value:invF.status,onChange:e=>setInvF(f=>({...f,status:e.target.value}))},INV_ST.map(x=>React.createElement("option",{key:x},x)))),
-          React.createElement(FG,{label:"납부 기한"},React.createElement("input",{style:inp,type:"date",value:invF.dueDate||"",onChange:e=>setInvF(f=>({...f,dueDate:e.target.value}))}))
-        ),
-        (invF.items||[]).map((item,i)=>React.createElement("div",{key:i,style:{display:"flex",gap:7,marginBottom:7,alignItems:"center"}},
-          React.createElement("input",{style:{...inp,flex:2},placeholder:"내용",value:item.desc,onChange:e=>{const its=[...invF.items];its[i]={...its[i],desc:e.target.value};setInvF(f=>({...f,items:its}));}}),
-          React.createElement("input",{style:{...inp,width:54},type:"number",placeholder:"수량",value:item.qty,onChange:e=>{const its=[...invF.items];its[i]={...its[i],qty:e.target.value};setInvF(f=>({...f,items:its}));}}),
-          React.createElement("input",{style:{...inp,width:84},type:"number",placeholder:"$",value:item.price,onChange:e=>{const its=[...invF.items];its[i]={...its[i],price:e.target.value};setInvF(f=>({...f,items:its}));}}),
-          React.createElement(BtnSm,{v:"danger",onClick:()=>setInvF(f=>({...f,items:f.items.filter((_,j)=>j!==i)}))},"✕")
-        )),
-        React.createElement(Btn,{v:"outline",onClick:()=>setInvF(f=>({...f,items:[...f.items,{desc:"",qty:1,price:0}]})),style:{marginBottom:12}},"+ 항목 추가"),
-        React.createElement("div",{style:{textAlign:"right",fontWeight:700,color:"#059669",fontSize:17,marginBottom:14}},"합계: $"+total.toLocaleString()),
-        React.createElement("div",{style:{display:"flex",gap:8,justifyContent:"flex-end"}},
-          React.createElement(Btn,{onClick:doSaveInvoice},"저장"),
-          React.createElement(Btn,{v:"outline",onClick:()=>{setInvModal(null);setInvF(emptyInv);}},"취소")
-        )
-      )
-    );
+    return <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000}}>
+      <Card p={22} style={{width:510,maxHeight:"88vh",overflow:"auto"}}>
+        <div style={{fontSize:14,fontWeight:700,marginBottom:16}}>{invModal==="new"?"새 청구서":"청구서 편집"}</div>
+        <FG label="환자"><select style={sel} value={invF.patientId} onChange={e=>setInvF(f=>({...f,patientId:e.target.value}))}><option value="">선택</option>{patients.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></FG>
+        <div style={G2}>
+          <FG label="상태"><select style={sel} value={invF.status} onChange={e=>setInvF(f=>({...f,status:e.target.value}))}>{INV_ST.map(x=><option key={x}>{x}</option>)}</select></FG>
+          <FG label="납부 기한"><input style={inp} type="date" value={invF.dueDate||""} onChange={e=>setInvF(f=>({...f,dueDate:e.target.value}))}/></FG>
+        </div>
+        {(invF.items||[]).map((item,i)=><div key={i} style={{display:"flex",gap:7,marginBottom:7,alignItems:"center"}}>
+          <input style={{...inp,flex:2}} placeholder="내용" value={item.desc} onChange={e=>{const its=[...invF.items];its[i]={...its[i],desc:e.target.value};setInvF(f=>({...f,items:its}));}}/>
+          <input style={{...inp,width:54}} type="number" placeholder="수량" value={item.qty} onChange={e=>{const its=[...invF.items];its[i]={...its[i],qty:e.target.value};setInvF(f=>({...f,items:its}));}}/>
+          <input style={{...inp,width:84}} type="number" placeholder="$" value={item.price} onChange={e=>{const its=[...invF.items];its[i]={...its[i],price:e.target.value};setInvF(f=>({...f,items:its}));}}/>
+          <BtnSm v="danger" onClick={()=>setInvF(f=>({...f,items:f.items.filter((_,j)=>j!==i)}))}>✕</BtnSm>
+        </div>)}
+        <Btn v="outline" onClick={()=>setInvF(f=>({...f,items:[...f.items,{desc:"",qty:1,price:0}]}))} style={{marginBottom:12}}>+ 항목 추가</Btn>
+        <div style={{textAlign:"right",fontWeight:700,color:"#059669",fontSize:17,marginBottom:14}}>합계: ${total.toLocaleString()}</div>
+        <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}><Btn onClick={doSaveInvoice}>저장</Btn><Btn v="outline" onClick={()=>{setInvModal(null);setInvF(emptyInv);}}>취소</Btn></div>
+      </Card>
+    </div>;
   };
 
-  const renders = { Dashboard:renderDashboard, Leads:renderLeads, Patients:renderPatients, Pipeline:renderPipeline, Hospitals:renderHospitals, Communications:renderComms, Travel:renderTravel, Finance:renderFinance, Reports:renderReports };
+  const renders={Dashboard:renderDashboard,Leads:renderLeads,Patients:renderPatients,Pipeline:renderPipeline,Hospitals:renderHospitals,Communications:renderComms,Travel:renderTravel,Finance:renderFinance,Reports:renderReports};
 
-  return React.createElement("div",{style:{fontFamily:"system-ui,-apple-system,sans-serif",background:BG,minHeight:"100vh",color:TXT,display:"flex"}},
-    React.createElement("div",{style:{width:220,background:SIDEBAR,display:"flex",flexDirection:"column",position:"fixed",height:"100vh",left:0,top:0,zIndex:100}},
-      React.createElement("div",{style:{padding:"18px 16px 14px",borderBottom:"1px solid #1e293b"}},
-        React.createElement("div",{style:{fontSize:14,fontWeight:700,color:"#fff"}},"Gerel Medi Tour"),
-        React.createElement("div",{style:{fontSize:10,color:"#64748b",marginTop:2}},"🇲🇳 → 🇰🇷 Patient Journey CRM")
-      ),
-      React.createElement("div",{style:{flex:1,overflowY:"auto",padding:"6px 0"}},
-        TABS.map(tabKey=>{
-          const isActive=tab===tabKey;
-          const urgentCnt=tabKey==="Leads"?urgent.length:0;
-          return React.createElement("button",{key:tabKey,onClick:()=>{setTab(tabKey);setSearch("");setSelPat(null);},style:{display:"flex",alignItems:"center",gap:9,padding:"8px 16px",cursor:"pointer",border:"none",background:isActive?"#1e293b":"transparent",color:isActive?"#fff":"#94a3b8",fontSize:12,fontWeight:isActive?600:400,textAlign:"left",width:"100%",borderLeft:isActive?"3px solid #3b82f6":"3px solid transparent"}},
-            React.createElement("span",{style:{fontSize:13}},ICONS[tabKey]),
-            React.createElement("span",{style:{flex:1}},tabKey),
-            urgentCnt>0&&React.createElement("span",{style:{background:"#ef4444",color:"#fff",borderRadius:20,padding:"1px 6px",fontSize:10,fontWeight:700}},urgentCnt)
-          );
-        })
-      ),
-      React.createElement("div",{style:{padding:"10px 16px",borderTop:"1px solid #1e293b",fontSize:10,color:"#334155"}},hospitals.length," hospitals · ",patients.length," patients")
-    ),
-    React.createElement("div",{style:{flex:1,overflow:"auto",padding:"24px 28px",marginLeft:220,minWidth:0}},
-      React.createElement("div",{style:{marginBottom:20}},
-        React.createElement("div",{style:{fontSize:20,fontWeight:700,color:TXT}},tab),
-        React.createElement("div",{style:{fontSize:12,color:TXT2,marginTop:2}},new Date().toLocaleDateString("en-US",{weekday:"long",year:"numeric",month:"long",day:"numeric"}))
-      ),
-      renders[tab]&&renders[tab]()
-    ),
-    renderInvModal(),
-    toast&&React.createElement("div",{style:{position:"fixed",bottom:22,right:22,background:toast.type==="err"?"#dc2626":"#059669",color:"#fff",padding:"10px 16px",borderRadius:9,fontSize:13,fontWeight:600,zIndex:9999}},toast.msg)
+  return (
+    <div style={{fontFamily:"system-ui,-apple-system,sans-serif",background:BG,minHeight:"100vh",color:TXT,display:"flex"}}>
+      <div style={{width:220,background:SIDEBAR,display:"flex",flexDirection:"column",position:"fixed",height:"100vh",left:0,top:0,zIndex:100}}>
+        <div style={{padding:"18px 16px 14px",borderBottom:"1px solid #1e293b"}}>
+          <div style={{fontSize:14,fontWeight:700,color:"#fff"}}>Gerel Medi Tour</div>
+          <div style={{fontSize:10,color:"#64748b",marginTop:2}}>🇲🇳 → 🇰🇷 Patient Journey CRM</div>
+        </div>
+        <div style={{flex:1,overflowY:"auto",padding:"6px 0"}}>
+          {TABS.map(tabKey=>{
+            const isActive=tab===tabKey;
+            const urgentCnt=tabKey==="Leads"?urgent.length:0;
+            return <button key={tabKey} onClick={()=>{setTab(tabKey);setSearch("");setSelPat(null);}} style={{display:"flex",alignItems:"center",gap:9,padding:"8px 16px",cursor:"pointer",border:"none",background:isActive?"#1e293b":"transparent",color:isActive?"#fff":"#94a3b8",fontSize:12,fontWeight:isActive?600:400,textAlign:"left",width:"100%",borderLeft:isActive?"3px solid #3b82f6":"3px solid transparent"}}>
+              <span style={{fontSize:13}}>{ICONS[tabKey]}</span>
+              <span style={{flex:1}}>{tabKey}</span>
+              {urgentCnt>0&&<span style={{background:"#ef4444",color:"#fff",borderRadius:20,padding:"1px 6px",fontSize:10,fontWeight:700}}>{urgentCnt}</span>}
+            </button>;
+          })}
+        </div>
+        <div style={{padding:"10px 16px",borderTop:"1px solid #1e293b",fontSize:10,color:"#334155"}}>{hospitals.length} hospitals · {patients.length} patients</div>
+      </div>
+      <div style={{flex:1,overflow:"auto",padding:"24px 28px",marginLeft:220,minWidth:0}}>
+        <div style={{marginBottom:20}}>
+          <div style={{fontSize:20,fontWeight:700,color:TXT}}>{tab}</div>
+          <div style={{fontSize:12,color:TXT2,marginTop:2}}>{new Date().toLocaleDateString("en-US",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</div>
+        </div>
+        {renders[tab]&&renders[tab]()}
+      </div>
+      {renderInvModal()}
+      {toast&&<div style={{position:"fixed",bottom:22,right:22,background:toast.type==="err"?"#dc2626":"#059669",color:"#fff",padding:"10px 16px",borderRadius:9,fontSize:13,fontWeight:600,zIndex:9999}}>{toast.msg}</div>}
+    </div>
   );
 }
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(React.createElement(App));
+const root=ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App/>);
 </script>
 </body>
 </html>
