@@ -1,467 +1,937 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 
-const SB_URL = 'https://cxunxveutyuhspjeswgq.supabase.co';
-const SB_KEY = 'sb_publishable_lqOPzImzgI0B_pbnTLmyFA_5USemX2c';
-const H = { 'Content-Type':'application/json', 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Prefer': 'return=representation' };
+const uid = () => Math.random().toString(36).slice(2, 9);
+const todayStr = () => new Date().toISOString().split("T")[0];
+const fmtDate = d => d ? new Date(d + "T00:00").toLocaleDateString("en-US", { month:"short", day:"numeric", year:"numeric" }) : "—";
+const fmtDT = ts => new Date(ts).toLocaleString("en-US", { month:"short", day:"numeric", hour:"2-digit", minute:"2-digit" });
+const addDays = (d, n) => { const dt = new Date(d + "T00:00"); dt.setDate(dt.getDate() + n); return dt.toISOString().split("T")[0]; };
+const calcAge = dob => dob ? Math.floor((new Date() - new Date(dob)) / 31557600000) : "";
 
-const sb = {
-  get: async (table, query='') => { const r = await fetch(`${SB_URL}/rest/v1/${table}?${query}`, {headers:H}); return r.ok ? r.json() : []; },
-  post: async (table, body) => { const r = await fetch(`${SB_URL}/rest/v1/${table}`, {method:'POST', headers:H, body:JSON.stringify(body)}); return r.ok ? r.json() : null; },
-  patch: async (table, id, body) => { const r = await fetch(`${SB_URL}/rest/v1/${table}?id=eq.${id}`, {method:'PATCH', headers:{...H,'Prefer':'return=minimal'}, body:JSON.stringify(body)}); return r.ok; },
-  del: async (table, id) => { const r = await fetch(`${SB_URL}/rest/v1/${table}?id=eq.${id}`, {method:'DELETE', headers:H}); return r.ok; },
+const PIPELINE = ["Inquiry","Medical Review","Hospital Contacted","Quotation Received","Patient Confirmed","Visa Processing","Travel Ready","Arrived","In Treatment","Aftercare","Completed","Cancelled"];
+const PIPELINE_C = { Inquiry:"#f59e0b","Medical Review":"#f97316","Hospital Contacted":"#8b5cf6","Quotation Received":"#3b82f6","Patient Confirmed":"#06b6d4","Visa Processing":"#a78bfa","Travel Ready":"#0ea5e9",Arrived:"#ec4899","In Treatment":"#e11d48",Aftercare:"#f59e0b",Completed:"#10b981",Cancelled:"#ef4444" };
+const PRIORITY = ["🔴 Urgent","🟡 Medium","🟢 Normal"];
+const PRIORITY_C = { "🔴 Urgent":"#ef4444","🟡 Medium":"#f59e0b","🟢 Normal":"#10b981" };
+const LEAD_SOURCES = ["Facebook","TikTok","Google Ads","Website Form","Phone","WhatsApp","KakaoTalk","Referral","Walk-in"];
+const TREATMENT_TAGS = ["Eye Surgery","Plastic Surgery","Oncology","Cardiology","Orthopedics","Fertility / IVF","Dental","Dermatology","Neurology","General Surgery","Spine","Urology"];
+const SPECIALTIES = ["Eye Surgery","Plastic Surgery","Oncology","Cardiology","Orthopedics","Fertility / IVF","Dental","Dermatology","Neurology","General Surgery","Spine","Urology","Gastroenterology","ENT","Pediatrics"];
+const COMM_CHANNELS = ["Facebook Messenger","WhatsApp","KakaoTalk","Phone Call","Email","In-Person"];
+const COORDINATORS = ["Unassigned","Enkh-Amar B.","Solongo T.","Tulgaa D.","Namuun O.","Bayarmaa G."];
+const LANGUAGES = ["Mongolian","English","Korean","Russian","Chinese"];
+const VISA_ST = ["Not Applied","Applied","Approved","Denied","Not Required"];
+const TRANSFER = ["Not Required","Airport Pickup","Airport Sendoff","Both"];
+const INV_ST = ["Draft","Sent","Partially Paid","Paid","Overdue","Cancelled"];
+const INV_C = { Draft:"#94a3b8",Sent:"#3b82f6","Partially Paid":"#f59e0b",Paid:"#10b981",Overdue:"#ef4444",Cancelled:"#64748b" };
+const TIER_C = { Premium:"#f59e0b",Standard:"#3b82f6",Partner:"#10b981" };
+const AFTERCARE_SCHEDULE = ["1 Week","1 Month","3 Months","6 Months"];
+const TABS = ["Dashboard","Leads","Patients","Pipeline","Hospitals","Quotations","Communications","Travel","Aftercare","Finance","Reports"];
+const ICONS = { Dashboard:"▦",Leads:"◎",Patients:"◑",Pipeline:"▤",Hospitals:"✦",Quotations:"◈",Communications:"◉",Travel:"▷",Aftercare:"♡",Finance:"◇",Reports:"▣" };
+
+const SEED_H = [
+  { id:"h1",name:"Samsung Medical Center",city:"Seoul",tier:"Premium",specialties:["Cardiology","Oncology","Neurology"],contactName:"Kim Ji-won",contactEmail:"intl@smc.kr",contactPhone:"+82-2-3410-0200",active:true,basePrice:8000 },
+  { id:"h2",name:"Asan Medical Center",city:"Seoul",tier:"Premium",specialties:["Oncology","General Surgery","Urology"],contactName:"Park Soo-yeon",contactEmail:"global@amc.kr",contactPhone:"+82-2-3010-3114",active:true,basePrice:7500 },
+  { id:"h3",name:"Severance Hospital",city:"Seoul",tier:"Premium",specialties:["Cardiology","Spine","Neurology"],contactName:"Lee Hyun-ji",contactEmail:"intl@yuhs.ac",contactPhone:"+82-2-2228-5800",active:true,basePrice:7000 },
+  { id:"h4",name:"Seoul St. Mary's",city:"Seoul",tier:"Standard",specialties:["Fertility / IVF","Oncology","Orthopedics"],contactName:"Choi Min-jun",contactEmail:"global@cmcseoul.kr",contactPhone:"+82-2-2258-5745",active:true,basePrice:5500 },
+  { id:"h5",name:"Gangnam Severance",city:"Seoul",tier:"Premium",specialties:["Plastic Surgery","Dermatology","Eye Surgery"],contactName:"Shin Da-eun",contactEmail:"intl@gs.yuhs.ac",contactPhone:"+82-2-2019-3114",active:true,basePrice:6500 },
+  { id:"h6",name:"Busan Paik Hospital",city:"Busan",tier:"Standard",specialties:["Orthopedics","General Surgery","ENT"],contactName:"Jung Yoo-na",contactEmail:"intl@paik.ac.kr",contactPhone:"+82-51-890-6114",active:true,basePrice:4500 },
+  { id:"h7",name:"Wooridul Spine Hospital",city:"Seoul",tier:"Premium",specialties:["Spine","Orthopedics","Neurology"],contactName:"Oh Se-jin",contactEmail:"global@wooridul.co.kr",contactPhone:"+82-2-513-8150",active:true,basePrice:6000 },
+  { id:"h8",name:"ID Hospital Seoul",city:"Seoul",tier:"Premium",specialties:["Plastic Surgery","Eye Surgery","Dermatology"],contactName:"Han Jae-in",contactEmail:"intl@idhospital.com",contactPhone:"+82-2-3496-9785",active:true,basePrice:5500 },
+];
+
+async function loadKey(k) { try { const r = await window.storage.get(k); return r ? JSON.parse(r.value) : null; } catch { return null; } }
+async function saveKey(k, v) { try { await window.storage.set(k, JSON.stringify(v)); } catch {} }
+
+const STORE = { h:"gmt6_h",p:"gmt6_p",l:"gmt6_l",c:"gmt6_c",q:"gmt6_q",inv:"gmt6_inv",d:"gmt6_d",ac:"gmt6_ac" };
+
+const BG="#f8f9fc", SURF="#ffffff", SURF2="#f1f5f9", BOR="#e2e8f0", TXT="#0f172a", TXT2="#64748b", TXT3="#94a3b8", BRAND="#2563eb", BRAND_L="#eff6ff", BRAND_M="#bfdbfe", SIDEBAR="#0f172a";
+const inp = { width:"100%",background:SURF,border:"1px solid "+BOR,borderRadius:8,padding:"9px 12px",color:TXT,fontSize:13,outline:"none",boxSizing:"border-box" };
+const sel = { width:"100%",background:SURF,border:"1px solid "+BOR,borderRadius:8,padding:"9px 12px",color:TXT,fontSize:13,outline:"none",boxSizing:"border-box" };
+const td0 = { padding:"11px 13px",borderBottom:"1px solid "+BOR,fontSize:12,verticalAlign:"middle" };
+
+const Btn = ({ v, onClick, children, disabled }) => {
+  const base = { border:"none",borderRadius:8,padding:"9px 18px",fontSize:13,fontWeight:600,cursor:"pointer",opacity:disabled?0.6:1 };
+  const styles = { primary:{...base,background:BRAND,color:"#fff"}, success:{...base,background:"#059669",color:"#fff"}, danger:{...base,background:"#dc2626",color:"#fff"}, outline:{...base,background:SURF,color:TXT,border:"1px solid "+BOR} };
+  return <button style={styles[v]||styles.primary} onClick={onClick} disabled={disabled}>{children}</button>;
 };
+const BtnSm = ({ v, onClick, children }) => {
+  const styles = { danger:{background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca"}, success:{background:"#f0fdf4",color:"#059669",border:"1px solid #bbf7d0"}, primary:{background:BRAND_L,color:BRAND,border:"1px solid "+BRAND_M}, default:{background:SURF2,color:TXT2,border:"1px solid "+BOR} };
+  const s = styles[v]||styles.default;
+  return <button style={{...s,borderRadius:6,padding:"4px 10px",fontSize:11,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}} onClick={onClick}>{children}</button>;
+};
+const Card = ({ children, p, style }) => <div style={{background:SURF,border:"1px solid "+BOR,borderRadius:12,padding:p||16,...(style||{})}}>{children}</div>;
+const Pill = ({ color, children }) => { const c=color||"#64748b"; return <span style={{background:c+"18",color:c,border:"1px solid "+c+"30",borderRadius:20,padding:"3px 10px",fontSize:11,fontWeight:600,display:"inline-block",whiteSpace:"nowrap"}}>{children}</span>; };
+const Tag = ({ color, children }) => { const c=color||BRAND; return <span style={{background:c+"12",color:c,borderRadius:6,padding:"2px 8px",fontSize:11,fontWeight:500,display:"inline-block"}}>{children}</span>; };
+const SH = ({ t }) => <div style={{fontSize:11,fontWeight:700,color:TXT3,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:12,paddingBottom:8,borderBottom:"1px solid "+BOR}}>{t}</div>;
+const IR = ({ label, val }) => { if (!val) return null; return <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:"1px solid "+BOR}}><span style={{fontSize:12,color:TXT2}}>{label}</span><span style={{fontSize:13,color:TXT,fontWeight:500,textAlign:"right",maxWidth:"60%"}}>{val}</span></div>; };
+const FG = ({ label, children, mb }) => <div style={{marginBottom:mb||13}}><label style={{display:"block",fontSize:11,fontWeight:600,color:TXT2,marginBottom:5}}>{label}</label>{children}</div>;
+const StatCard = ({ label, value, sub, color }) => { const c=color||BRAND; return <div style={{background:SURF,border:"1px solid "+BOR,borderRadius:12,padding:"16px 18px",borderTop:"3px solid "+c}}><div style={{fontSize:22,fontWeight:700,color:TXT}}>{value}</div><div style={{fontSize:13,color:TXT2,marginTop:4}}>{label}</div>{sub&&<div style={{fontSize:11,color:c,marginTop:3,fontWeight:600}}>{sub}</div>}</div>; };
 
-const HOSPITALS = ["Samsung Medical Center","Asan Medical Center","Severance Hospital (Yonsei)","Seoul National University Hospital","Korea University Anam Hospital","Gangnam Severance Hospital","Seoul St. Mary's Hospital","Bundang Seoul National University Hospital","CHA Bundang Medical Center","Ajou University Medical Center","Pusan National University Hospital","Wooridul Spine Hospital","Nune Eye Hospital","Megahealth Dental Clinic","JCI Korea International Clinic"];
-const DEPARTMENTS = ["Cardiology","Cardiothoracic Surgery","Neurology","Neurosurgery","Orthopedics & Joint Replacement","Spine Surgery","Oncology / Cancer Treatment","Radiation Oncology","Hematology","Pediatrics","Pediatric Surgery","General Surgery","Laparoscopic & Robotic Surgery","Dermatology & Aesthetics","Plastic & Reconstructive Surgery","ENT","Cochlear Implant","Ophthalmology / LASIK","Dental & Maxillofacial","Fertility / IVF","Obstetrics & Gynecology","Urology & Kidney Transplant","Nephrology","Gastroenterology & Liver","Liver Transplant","Endocrinology","Rheumatology","Pulmonology","Psychiatry","Physical Therapy & Rehabilitation","Sports Medicine","Stem Cell Therapy","Health Checkup","Traditional Korean Medicine"];
-const STATUSES = ["Inquiry","Documents Preparing","Visa Applied","Visa Approved","Flight Booked","Arrived in Korea","In Treatment","Treatment Complete","Returned to Mongolia","Follow-up","Completed","Cancelled"];
-const STATUS_COLORS = {"Inquiry":"#f59e0b","Documents Preparing":"#f97316","Visa Applied":"#a78bfa","Visa Approved":"#3b82f6","Flight Booked":"#06b6d4","Arrived in Korea":"#8b5cf6","In Treatment":"#ec4899","Treatment Complete":"#38bdf8","Returned to Mongolia":"#64748b","Follow-up":"#f97316","Completed":"#10b981","Cancelled":"#ef4444"};
-const VISA_STATUSES = ["Not Applied","Applied","Approved","Denied","Not Required"];
-const TRANSFER_OPTIONS = ["Not Required","Incheon Airport Pickup","Incheon Airport Sendoff","Both Pickup & Sendoff","Gimpo Airport Pickup","Gimpo Airport Sendoff"];
-const AIRLINES = ["Korean Air (KE)","Asiana Airlines (OZ)","Air Busan (BX)","Jin Air (LJ)","MIAT Mongolian Airlines (OM)","Other"];
-const INSURANCE = ["No Insurance","Mongol Daatgal","MIG Insurance","Nomin Insurance","Khan Insurance","AIG Mongolia","Korean Travel Insurance","Other"];
-const COUNTRIES = ["Mongolia","China","Russia","Kazakhstan","Kyrgyzstan","Uzbekistan","Japan","South Korea","India","Other"];
-const TABS = ["Dashboard","Inquiries","New Patient","Patients","Appointments","Follow-ups"];
-const ICONS = {Dashboard:"◈",Inquiries:"🌐","New Patient":"+",Patients:"♟",Appointments:"⊡","Follow-ups":"✉"};
+const G2 = { display:"grid",gridTemplateColumns:"1fr 1fr",gap:14 };
+const G3 = { display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:13 };
+const G4 = { display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:13 };
 
-const uid = () => Math.random().toString(36).slice(2,9);
-const today = () => new Date().toISOString().split("T")[0];
-const fmtDate = d => d ? new Date(d+"T00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) : "—";
-const fmtDT = ts => new Date(ts).toLocaleString("en-US",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"});
+const emptyLead = { name:"",phone:"",age:"",source:"Facebook",treatmentTag:"Eye Surgery",priority:"🟡 Medium",language:"Mongolian",notes:"",coordinator:"Unassigned",status:"Inquiry" };
+const emptyPat = { name:"",dob:"",age:"",gender:"Male",phone:"",sns:"",email:"",language:"Mongolian",interpreterNeeded:"No",coordinator:"Unassigned",referralDate:"",diagnosis:"",department:"",appointmentStatus:"",referralProgress:"",hospitalId:"",referralType:"Self-Choose",emergencyName:"",emergencyPhone:"",emergencyRelation:"",referringDoctor:"",referringHospital:"",medicalHistory:"",allergies:"",medications:"",passportNo:"",passportExpiry:"",visaStatus:"Not Applied",visaExpiry:"",insuranceProvider:"",insurancePolicyNo:"",arrivalDate:"",departureDate:"",flightArr:"",flightDep:"",hotelName:"",hotelCheckIn:"",hotelCheckOut:"",airportTransfer:"Not Required",transferNotes:"",treatmentTag:"",surgeryDate:"",treatmentNotes:"",status:"Inquiry" };
+const emptyQ = { patientId:"",items:[{ hospitalId:"",surgeryPrice:0,hotelPrice:0,interpreterPrice:0,transportPrice:0,duration:0,notes:"" }] };
+const emptyInv = { patientId:"",items:[{ desc:"Consultation Fee",qty:1,price:0 }],status:"Draft",notes:"",dueDate:"" };
 
 export default function App() {
   const [tab, setTab] = useState("Dashboard");
+  const [hospitals, setHospitals] = useState([]);
   const [patients, setPatients] = useState([]);
-  const [appointments, setAppointments] = useState([]);
-  const [notes, setNotes] = useState([]);
-  const [inquiries, setInquiries] = useState([]);
+  const [leads, setLeads] = useState([]);
+  const [comms, setComms] = useState([]);
+  const [quotes, setQuotes] = useState([]);
+  const [invoices, setInvoices] = useState([]);
+  const [docs, setDocs] = useState([]);
+  const [aftercare, setAftercare] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
   const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState("All");
-  const [filterHospital, setFilterHospital] = useState("All");
-  const [selectedPatient, setSelectedPatient] = useState(null);
-  const [detailTab, setDetailTab] = useState("Info");
-  const [noteText, setNoteText] = useState("");
-  const [notePatientId, setNotePatientId] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [selPat, setSelPat] = useState(null);
+  const [editPat, setEditPat] = useState(null);
+  const [selHosp, setSelHosp] = useState(null);
+  const [selQ, setSelQ] = useState(null);
+  const [pTab, setPTab] = useState("Info");
+  const [fPrio, setFPrio] = useState("All");
+  const [fSrc, setFSrc] = useState("All");
+  const [fStage, setFStage] = useState("All");
+  const [fSpec, setFSpec] = useState("All");
+  const [showForm, setShowForm] = useState(null);
+  const [invModal, setInvModal] = useState(null);
+  const [commTarget, setCommTarget] = useState("");
+  const [commText, setCommText] = useState("");
+  const [commChan, setCommChan] = useState("WhatsApp");
+  const [txIn, setTxIn] = useState("");
+  const [txOut, setTxOut] = useState("");
+  const [txLang, setTxLang] = useState("MN-KO");
+  const [txLoading, setTxLoading] = useState(false);
+  const [sortOrder, setSortOrder] = useState("desc");
+  const [showImport, setShowImport] = useState(false);
+  const [importStep, setImportStep] = useState(1);
+  const [importHeaders, setImportHeaders] = useState([]);
+  const [importPreview, setImportPreview] = useState([]);
+  const [importCols, setImportCols] = useState({});
+  const [lf, setLf] = useState(emptyLead);
+  const [pf, setPf] = useState(emptyPat);
+  const [qf, setQf] = useState(emptyQ);
+  const [invF, setInvF] = useState(emptyInv);
+  const fileRef = useRef();
+  const importRef = useRef();
 
-  const emptyP = {name:"",age:"",gender:"Male",nationality:"Mongolia",phone:"",email:"",passport_no:"",passport_expiry:"",visa_status:"Not Applied",visa_expiry:"",insurance_provider:"No Insurance",insurance_policy_no:"",arrival_date:"",departure_date:"",airline:"",flight_arrival:"",flight_departure:"",hotel_name:"",hotel_address:"",hotel_checkin:"",hotel_checkout:"",airport_transfer:"Not Required",transfer_notes:"",hospital:HOSPITALS[0],hospital_city:"Seoul",department:DEPARTMENTS[0],doctor:"",consult_date:"",consult_time:"09:00",treatment_notes:"",estimated_cost:"",status:"Inquiry"};
-  const [pForm, setPForm] = useState(emptyP);
-
-  const showToast = (msg, type="success") => { setToast({msg,type}); setTimeout(()=>setToast(null),3000); };
-
-  const loadAll = useCallback(async () => {
-    setLoading(true);
-    const [p, a, n, inq] = await Promise.all([
-      sb.get('patients','order=created_at.desc'),
-      sb.get('appointments','order=created_at.desc'),
-      sb.get('notes','order=created_at.desc'),
-      sb.get('inquiries','order=created_at.desc'),
-    ]);
-    setPatients(p||[]); setAppointments(a||[]); setNotes(n||[]); setInquiries(inq||[]);
-    setLoading(false);
+  useEffect(() => {
+    (async () => {
+      const [h,p,l,c,q,inv,d,a] = await Promise.all([STORE.h,STORE.p,STORE.l,STORE.c,STORE.q,STORE.inv,STORE.d,STORE.ac].map(loadKey));
+      setHospitals(h||SEED_H); if(!h) await saveKey(STORE.h,SEED_H);
+      setPatients(p||[]); setLeads(l||[]); setComms(c||[]); setQuotes(q||[]); setInvoices(inv||[]); setDocs(d||[]); setAftercare(a||[]);
+      setLoading(false);
+    })();
   }, []);
 
-  useEffect(() => { loadAll(); }, [loadAll]);
+  const toast_ = (msg,type) => { setToast({msg,type:type||"ok"}); setTimeout(()=>setToast(null),3000); };
+  const saveH  = async d => { setHospitals(d); await saveKey(STORE.h,d); };
+  const saveP  = async d => { setPatients(d);  await saveKey(STORE.p,d); };
+  const saveL  = async d => { setLeads(d);     await saveKey(STORE.l,d); };
+  const saveC  = async d => { setComms(d);     await saveKey(STORE.c,d); };
+  const saveQ  = async d => { setQuotes(d);    await saveKey(STORE.q,d); };
+  const saveInv= async d => { setInvoices(d);  await saveKey(STORE.inv,d); };
+  const saveD  = async d => { setDocs(d);      await saveKey(STORE.d,d); };
+  const saveAC = async d => { setAftercare(d); await saveKey(STORE.ac,d); };
 
+  const addLead = async () => {
+    if (!lf.name||!lf.phone) return toast_("Name & phone required.","err");
+    await saveL([...leads,{ ...lf,id:uid(),createdAt:new Date().toISOString(),autoMessage:"Hello "+lf.name+"! We received your request. — Gerel Medi Tour" }]);
+    setLf(emptyLead); setShowForm(null); toast_(lf.name+" added.");
+  };
+  const convertLead = async lead => {
+    const p={...emptyPat,id:uid(),name:lead.name,phone:lead.phone,age:lead.age,language:lead.language,coordinator:lead.coordinator,treatmentTag:lead.treatmentTag,status:"Medical Review",createdAt:new Date().toISOString()};
+    await saveP([...patients,p]);
+    await saveL(leads.map(l=>l.id===lead.id?{...l,converted:true,patientId:p.id}:l));
+    toast_(lead.name+" converted.");
+  };
   const addPatient = async () => {
-    if (!pForm.name || !pForm.phone) return showToast("Нэр болон утас заавал!", "error");
-    setSaving(true);
-    const res = await sb.post('patients', pForm);
-    if (res && res[0]) {
-      if (pForm.consult_date) {
-        await sb.post('appointments', {
-          patient_id: res[0].id,
-          hospital: pForm.hospital,
-          department: pForm.department,
-          doctor: pForm.doctor,
-          appt_date: pForm.consult_date,
-          appt_time: pForm.consult_time,
-          notes: pForm.treatment_notes,
-          status: 'Pending'
-        });
-      }
-      await loadAll();
-      setPForm(emptyP);
-      showToast(`${pForm.name} амжилттай бүртгэгдлээ!`);
-      setTab("Patients");
-    } else showToast("Алдаа гарлаа. Дахин оролдоно уу.", "error");
-    setSaving(false);
+    if (!pf.name||!pf.phone) return toast_("Name & phone required.","err");
+    const newP = {...emptyPat,...pf,id:uid(),createdAt:new Date().toISOString()};
+    await saveP([...patients,newP]);
+    setPf(emptyPat); setShowForm(null); toast_(pf.name+" registered.");
+  };
+  const saveEditPat = async () => {
+    if (!editPat) return;
+    await saveP(patients.map(p=>p.id===editPat.id?{...editPat}:p));
+    setSelPat({...editPat}); setEditPat(null); toast_(editPat.name+" updated.");
+  };
+  const updateStage = async (id,status) => {
+    await saveP(patients.map(p=>p.id===id?{...p,status}:p));
+    setSelPat(sp=>sp&&sp.id===id?{...sp,status}:sp);
+  };
+  const deletePat = async id => {
+    if(!confirm("Delete this patient?")) return;
+    await saveP(patients.filter(p=>p.id!==id));
+    await Promise.all([saveC(comms.filter(c=>c.patientId!==id)),saveD(docs.filter(d=>d.patientId!==id)),saveInv(invoices.filter(i=>i.patientId!==id)),saveAC(aftercare.filter(a=>a.patientId!==id))]);
+    if(selPat&&selPat.id===id) setSelPat(null);
+    toast_("Deleted.");
+  };
+  const addComm = async pid => {
+    if(!commText.trim()) return;
+    await saveC([...comms,{id:uid(),patientId:pid,channel:commChan,text:commText.trim(),createdAt:new Date().toISOString()}]);
+    setCommText(""); toast_("Logged.");
+  };
+  const doSaveQuote = async () => {
+    if(!qf.patientId) return toast_("Select patient.","err");
+    await saveQ([...quotes,{...qf,id:uid(),createdAt:new Date().toISOString()}]);
+    setQf(emptyQ); setShowForm(null); toast_("Quote saved.");
+  };
+  const doSaveInvoice = async () => {
+    if(!invF.patientId) return toast_("Select patient.","err");
+    const total=invF.items.reduce((s,i)=>s+(Number(i.qty)||0)*(Number(i.price)||0),0);
+    const inv={...invF,id:invModal==="new"?uid():invModal,total,createdAt:invModal==="new"?new Date().toISOString():invF.createdAt};
+    await saveInv(invModal==="new"?[...invoices,inv]:invoices.map(i=>i.id===invModal?inv:i));
+    setInvModal(null); setInvF(emptyInv); toast_("Invoice saved.");
+  };
+  const addAftercare = async (patientId,milestone) => {
+    await saveAC([...aftercare,{id:uid(),patientId,milestone,status:"Pending",createdAt:new Date().toISOString()}]);
+    toast_(milestone+" scheduled.");
+  };
+  const doTranslate = async () => {
+    if(!txIn.trim()) return;
+    setTxLoading(true); setTxOut("");
+    try {
+      const pairs={"MN-KO":["Mongolian","Korean"],"MN-EN":["Mongolian","English"],"KO-MN":["Korean","Mongolian"],"EN-MN":["English","Mongolian"]};
+      const [from,to]=pairs[txLang]||["Mongolian","Korean"];
+      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:"Translate from "+from+" to "+to+". Return ONLY the translation:\n\n"+txIn}]})});
+      const data=await res.json();
+      setTxOut((data.content&&data.content[0]&&data.content[0].text)||"Failed.");
+    } catch { setTxOut("Error."); }
+    setTxLoading(false);
   };
 
-  const updatePatientStatus = async (id, status) => {
-    await sb.patch('patients', id, {status});
-    setPatients(prev => prev.map(p => p.id===id ? {...p,status} : p));
-    if (selectedPatient?.id===id) setSelectedPatient(prev => ({...prev,status}));
-    showToast(`→ ${status}`);
+  const handleImportFile = () => {
+    const file = importRef.current && importRef.current.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const text = ev.target.result;
+      const lines = text.split(/\r?\n/).filter(l => l.replace(/,+/g,"").trim().length > 0);
+      if (lines.length < 2) return;
+      const parseLine = line => {
+        const f=[]; let cur="",inQ=false;
+        for (let i=0;i<=line.length;i++) {
+          const ch=line[i];
+          if (ch==='"') { if(inQ&&line[i+1]==='"'){cur+='"';i++;}else inQ=!inQ; }
+          else if ((ch===","||ch===undefined)&&!inQ) { f.push(cur.trim()); cur=""; }
+          else if (ch!==undefined) cur+=ch;
+        }
+        return f;
+      };
+      const headers = parseLine(lines[0]);
+      const rows = lines.slice(1).map(l=>{ const c=parseLine(l); const o={}; headers.forEach((h,i)=>{o[h]=(c[i]||"").trim();}); return o; }).filter(r=>Object.values(r).some(v=>v));
+      setImportHeaders(headers); setImportPreview(rows);
+      const map={};
+      const detect=(keys,target)=>{ const f=headers.find(h=>keys.some(k=>h.toLowerCase().includes(k.toLowerCase()))); if(f) map[target]=f; };
+      detect(["name","이름","성명","환자명","нэр"],"name");
+      detect(["phone","전화","연락처","утас"],"phone");
+      detect(["birth","dob","생년","생일"],"dob");
+      detect(["age","나이","나스"],"age");
+      detect(["gender","성별","хүйс"],"gender");
+      detect(["referral","의뢰수신","의뢰일"],"referralDate");
+      detect(["diagnos","진단","병명"],"diagnosis");
+      detect(["depart","진료과"],"department");
+      detect(["hospital","병원","эмнэлэг"],"hospitalName");
+      detect(["status","상태","단계"],"status");
+      setImportCols(map); setImportStep(2);
+    };
+    reader.readAsText(file, "UTF-8");
   };
 
-  const deletePatient = async id => {
-    if (!confirm("Өвчтөн болон бүх мэдээллийг устгах уу?")) return;
-    await sb.del('patients', id);
-    await loadAll();
-    if (selectedPatient?.id===id) setSelectedPatient(null);
-    showToast("Устгагдлаа.");
+  const doImport = async () => {
+    const g = (row,key) => importCols[key] ? (row[importCols[key]]||"").trim() : "";
+    const newPats = importPreview.map(row => {
+      const dobVal = g(row,"dob");
+      const ageVal = dobVal ? String(calcAge(dobVal)) : g(row,"age");
+      const hospName = g(row,"hospitalName");
+      const matchH = hospName ? hospitals.find(h=>h.name.toLowerCase().includes(hospName.toLowerCase())) : null;
+      return { ...emptyPat, id:uid(), createdAt:new Date().toISOString(),
+        name:g(row,"name"), phone:g(row,"phone"), dob:dobVal, age:ageVal,
+        gender:g(row,"gender")||"Male", referralDate:g(row,"referralDate"),
+        diagnosis:g(row,"diagnosis"), department:g(row,"department"),
+        hospitalId:matchH?matchH.id:"", status:g(row,"status")||"Inquiry",
+      };
+    }).filter(p=>p.name);
+    await saveP([...patients,...newPats]);
+    setShowImport(false); setImportStep(1); setImportPreview([]); setImportCols({});
+    toast_(newPats.length+"명 임포트 완료!");
   };
 
-  const addNote = async () => {
-    if (!noteText.trim() || !notePatientId) return showToast("Өвчтөн сонгоод тэмдэглэл бичнэ үү.", "error");
-    await sb.post('notes', {patient_id: notePatientId, text: noteText.trim()});
-    await loadAll();
-    setNoteText(""); showToast("Тэмдэглэл хадгалагдлаа.");
-  };
+  if(loading) return <div style={{fontFamily:"system-ui,sans-serif",background:BG,minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{textAlign:"center"}}><div style={{fontSize:20,fontWeight:700,marginBottom:6}}>Gerel Medi Tour CRM</div><div style={{color:TXT2,fontSize:13}}>로딩 중...</div></div></div>;
 
-  const updateInquiryStatus = async (id, status) => {
-    await sb.patch('inquiries', id, {status});
-    setInquiries(prev => prev.map(i => i.id===id ? {...i,status} : i));
-    showToast(`→ ${status}`);
-  };
+  const activeP=patients.filter(p=>["Medical Review","Hospital Contacted","Quotation Received","Patient Confirmed","Visa Processing","Travel Ready","Arrived","In Treatment"].includes(p.status)).length;
+  const paid=invoices.filter(i=>i.status==="Paid").reduce((s,i)=>s+i.total,0);
+  const conv=leads.length?Math.round(leads.filter(l=>l.converted).length/leads.length*100):0;
+  const urgent=leads.filter(l=>l.priority==="🔴 Urgent"&&!l.converted);
 
-  if (loading) return <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#080e1a",color:"#38bdf8",fontFamily:"Inter,sans-serif",flexDirection:"column",gap:12}}><div style={{fontSize:32}}>🏥</div><div>Supabase-аас татаж байна...</div></div>;
-
-  const S = {
-    app:{fontFamily:"'Inter',system-ui,sans-serif",background:"#080e1a",minHeight:"100vh",color:"#e2e8f0",display:"flex"},
-    sb:{width:215,background:"#0d1526",borderRight:"1px solid #1e2d45",display:"flex",flexDirection:"column",padding:"0 0 16px",flexShrink:0,position:"sticky",top:0,height:"100vh"},
-    lb:{padding:"16px 14px 12px",borderBottom:"1px solid #1e2d45"},
-    nb:a=>({display:"flex",alignItems:"center",gap:9,padding:"10px 16px",cursor:"pointer",border:"none",background:a?"linear-gradient(90deg,#cd2e3a22,#00347822)":"transparent",color:a?"#fff":"#64748b",fontSize:12,fontWeight:a?700:400,textAlign:"left",width:"100%",borderLeft:a?"3px solid #38bdf8":"3px solid transparent"}),
-    main:{flex:1,overflow:"auto",padding:"22px 26px"},
-    card:{background:"#0d1526",border:"1px solid #1e2d45",borderRadius:12,padding:18},
-    sc:c=>({background:"#0d1526",border:`1px solid ${c}33`,borderRadius:12,padding:"14px 18px",borderLeft:`4px solid ${c}`}),
-    g4:{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:13,marginBottom:20},
-    g2:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14},
-    g3:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:13},
-    lbl:{display:"block",fontSize:10,fontWeight:700,color:"#475569",marginBottom:5,textTransform:"uppercase",letterSpacing:"0.07em"},
-    inp:{width:"100%",background:"#080e1a",border:"1px solid #1e2d45",borderRadius:7,padding:"8px 11px",color:"#e2e8f0",fontSize:12,outline:"none",boxSizing:"border-box"},
-    sel:{width:"100%",background:"#080e1a",border:"1px solid #1e2d45",borderRadius:7,padding:"8px 11px",color:"#e2e8f0",fontSize:12,outline:"none",boxSizing:"border-box"},
-    btn:{background:"linear-gradient(135deg,#cd2e3a,#003478)",color:"#fff",border:"none",borderRadius:8,padding:"10px 22px",fontSize:12,fontWeight:700,cursor:"pointer"},
-    bsm:(c="#1d4ed8")=>({background:c,color:"#fff",border:"none",borderRadius:5,padding:"3px 8px",fontSize:10,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}),
-    badge:st=>({background:(STATUS_COLORS[st]||"#475569")+"22",color:STATUS_COLORS[st]||"#94a3b8",border:`1px solid ${STATUS_COLORS[st]||"#475569"}44`,borderRadius:20,padding:"2px 9px",fontSize:10,fontWeight:700,display:"inline-block"}),
-    sh:{fontSize:10,fontWeight:700,color:"#38bdf8",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:9,marginTop:4,paddingBottom:5,borderBottom:"1px solid #1e2d45"},
-    fg:{marginBottom:12},
-    tbl:{width:"100%",borderCollapse:"collapse"},
-    th:{textAlign:"left",fontSize:10,color:"#475569",fontWeight:700,padding:"7px 11px",textTransform:"uppercase",borderBottom:"1px solid #1e2d45"},
-    td:{padding:"10px 11px",borderBottom:"1px solid #0a1120",fontSize:12},
-    toast:t=>({position:"fixed",bottom:20,right:20,background:t==="error"?"#dc2626":"#059669",color:"#fff",padding:"10px 18px",borderRadius:9,fontSize:12,fontWeight:700,zIndex:9999}),
-    dtb:a=>({background:a?"#1e2d45":"transparent",color:a?"#38bdf8":"#64748b",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:a?700:400,cursor:"pointer"}),
-    fr:{display:"flex",gap:8,marginBottom:13,flexWrap:"wrap",alignItems:"center"},
-    ir:{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #1e2d45",fontSize:12},
-  };
-
-  const IR = ({label,val}) => val ? <div style={S.ir}><span style={{color:"#475569",fontSize:11}}>{label}</span><span style={{color:"#e2e8f0",fontWeight:500,textAlign:"right",maxWidth:"62%"}}>{val}</span></div> : null;
-
-  const matchSearch = p => {
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return p.name?.toLowerCase().includes(q) || (p.hospital||"").toLowerCase().includes(q) || (p.department||"").toLowerCase().includes(q) || (p.phone||"").includes(q) || (p.doctor||"").toLowerCase().includes(q);
-  };
-
-  const filteredPatients = patients.filter(p => matchSearch(p) && (filterStatus==="All"||(p.status||"Inquiry")===filterStatus) && (filterHospital==="All"||p.hospital===filterHospital));
-
-  const todayAppts = appointments.filter(a => a.appt_date===today());
-  const inKorea = patients.filter(p=>["Arrived in Korea","In Treatment","Treatment Complete"].includes(p.status)).length;
-  const activeCount = patients.filter(p=>["Visa Approved","Flight Booked","Arrived in Korea","In Treatment"].includes(p.status)).length;
-  const newInquiries = inquiries.filter(i=>i.status==='New').length;
-
-  // DASHBOARD
-  const renderDashboard = () => (
-    <>
-      <div style={S.g4}>
-        {[{l:"Нийт өвчтөн",v:patients.length,c:"#3b82f6"},{l:"Солонгост байгаа",v:inKorea,c:"#ec4899"},{l:"Идэвхтэй кейс",v:activeCount,c:"#8b5cf6"},{l:"Шинэ хүсэлт",v:newInquiries,c:"#f59e0b"}].map(({l,v,c})=>(
-          <div key={l} style={S.sc(c)}><div style={{fontSize:26,fontWeight:800,color:"#fff"}}>{v}</div><div style={{fontSize:11,color:"#64748b",marginTop:3}}>{l}</div></div>
-        ))}
-      </div>
-      <div style={S.g2}>
-        <div style={S.card}>
-          <div style={S.sh}>Өвчтөний явц</div>
-          {STATUSES.map(st=>{const cnt=patients.filter(p=>(p.status||"Inquiry")===st).length; return cnt>0?(
-            <div key={st} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:"1px solid #1e2d45"}}>
-              <span style={S.badge(st)}>{st}</span><span style={{fontWeight:700,fontSize:13}}>{cnt}</span>
-            </div>
-          ):null;})}
-          {!patients.length&&<div style={{color:"#475569",fontSize:12}}>Өвчтөн байхгүй байна.</div>}
-        </div>
-        <div style={S.card}>
-          <div style={S.sh}>Өнөөдрийн цаг захиалга</div>
-          {todayAppts.map(a=>{const pt=patients.find(p=>p.id===a.patient_id); return(<div key={a.id} style={{padding:"8px 0",borderBottom:"1px solid #1e2d45"}}><div style={{fontWeight:600,fontSize:12}}>{pt?.name||"—"}</div><div style={{fontSize:10,color:"#475569"}}>{a.appt_time} · {a.department} · {a.hospital}</div></div>);})}
-          {!todayAppts.length&&<div style={{color:"#475569",fontSize:12}}>Өнөөдөр цаг захиалга байхгүй.</div>}
-          <div style={{...S.sh,marginTop:16}}>Өнөөдрийн трансфер 🚐</div>
-          {patients.filter(p=>p.arrival_date===today()&&p.airport_transfer!=="Not Required").map(p=><div key={p.id} style={{fontSize:12,padding:"6px 0",borderBottom:"1px solid #1e2d45"}}>🛬 <strong>{p.name}</strong> <span style={{color:"#475569",fontSize:10}}>· {p.airline} {p.flight_arrival}</span></div>)}
-          {patients.filter(p=>p.departure_date===today()&&p.airport_transfer!=="Not Required").map(p=><div key={p.id} style={{fontSize:12,padding:"6px 0",borderBottom:"1px solid #1e2d45"}}>🛫 <strong>{p.name}</strong> <span style={{color:"#475569",fontSize:10}}>· {p.flight_departure}</span></div>)}
-          {!patients.filter(p=>p.arrival_date===today()||p.departure_date===today()).length&&<div style={{color:"#475569",fontSize:12}}>Өнөөдөр трансфер байхгүй.</div>}
-        </div>
-      </div>
-    </>
-  );
-
-  // INQUIRIES
-  const renderInquiries = () => {
-    const iColors={New:"#f59e0b",Contacted:"#3b82f6",Converted:"#10b981",Closed:"#ef4444"};
-    const iBadge=st=>({background:(iColors[st]||"#475569")+"22",color:iColors[st]||"#94a3b8",border:`1px solid ${iColors[st]||"#475569"}44`,borderRadius:20,padding:"2px 9px",fontSize:10,fontWeight:700,display:"inline-block"});
-    return(
-      <>
-        <div style={S.fr}>
-          <button style={{...S.btn,padding:"8px 16px",fontSize:11}} onClick={loadAll}>🔄 Шинэчлэх</button>
-          <span style={{color:"#475569",fontSize:11}}>{inquiries.length} хүсэлт</span>
-          <span style={{background:"#f59e0b22",color:"#f59e0b",border:"1px solid #f59e0b44",borderRadius:20,padding:"2px 10px",fontSize:10,fontWeight:700}}>{newInquiries} шинэ</span>
-        </div>
-        {!inquiries.length?(
-          <div style={{...S.card,textAlign:"center",padding:40}}>
-            <div style={{fontSize:32,marginBottom:12}}>🌐</div>
-            <div style={{fontWeight:700,marginBottom:8}}>Хүсэлт байхгүй байна</div>
-            <div style={{fontSize:12,color:"#475569"}}>Вэбсайтын форм бөглөгдөх бүрт энд харагдана</div>
+  const renders = {
+    Dashboard: () => {
+      const timeline=[];
+      patients.forEach(p=>{
+        if(p.arrivalDate>=todayStr()&&p.arrivalDate<=addDays(todayStr(),13)) timeline.push({date:p.arrivalDate,type:"arrival",p});
+        if(p.departureDate>=todayStr()&&p.departureDate<=addDays(todayStr(),13)) timeline.push({date:p.departureDate,type:"departure",p});
+      });
+      timeline.sort((a,b)=>a.date>b.date?1:-1);
+      return (
+        <div>
+          {urgent.length>0&&<div style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:10,padding:"12px 16px",marginBottom:18,display:"flex",alignItems:"center",gap:12}}><div style={{width:8,height:8,borderRadius:"50%",background:"#ef4444",flexShrink:0}}/><div style={{fontSize:13,color:"#b91c1c",fontWeight:600}}>{urgent.length} urgent lead{urgent.length>1?"s":""} need attention</div></div>}
+          <div style={{...G4,marginBottom:18}}>
+            <StatCard label="Active Leads" value={leads.filter(l=>!l.converted).length} sub={"Total: "+leads.length} color="#f59e0b"/>
+            <StatCard label="Active Patients" value={activeP} sub={"Total: "+patients.length} color={BRAND}/>
+            <StatCard label="Conversion Rate" value={conv+"%"} sub="lead to surgery" color="#8b5cf6"/>
+            <StatCard label="Revenue Paid" value={"$"+paid.toLocaleString()} sub={invoices.length+" invoices"} color="#10b981"/>
           </div>
-        ):(
-          <div style={{...S.card,padding:0,overflow:"hidden"}}>
-            <table style={S.tbl}>
-              <thead><tr style={{background:"#0a1120"}}>
-                {["Огноо","Нэр","Утас","И-мэйл","Чиглэл","Мэдэгдэл","Хэл","Статус",""].map(h=><th key={h} style={S.th}>{h}</th>)}
-              </tr></thead>
-              <tbody>{inquiries.map(inq=>(
-                <tr key={inq.id} style={{background:"#0d1526"}}>
-                  <td style={S.td}><div style={{fontSize:10,color:"#475569"}}>{new Date(inq.created_at).toLocaleDateString()}</div></td>
-                  <td style={S.td}><div style={{fontWeight:700}}>{inq.name}</div></td>
-                  <td style={S.td}>{inq.phone}</td>
-                  <td style={S.td}><div style={{fontSize:11,color:"#475569"}}>{inq.email||"—"}</div></td>
-                  <td style={S.td}><div style={{fontSize:11}}>{inq.department||"—"}</div></td>
-                  <td style={S.td}><div style={{fontSize:11,color:"#94a3b8",maxWidth:150,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{inq.message||"—"}</div></td>
-                  <td style={S.td}><span style={{fontSize:10,fontWeight:700,color:"#38bdf8"}}>{inq.language||"—"}</span></td>
-                  <td style={S.td}><span style={iBadge(inq.status||"New")}>{inq.status||"New"}</span></td>
-                  <td style={S.td}>
-                    <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-                      {["Contacted","Converted","Closed"].filter(st=>st!==(inq.status||"New")).map(st=>(
-                        <button key={st} style={S.bsm(st==="Converted"?"#059669":st==="Contacted"?"#1d4ed8":"#dc2626")} onClick={()=>updateInquiryStatus(inq.id,st)}>{st}</button>
-                      ))}
-                      <button style={S.bsm("#7c3aed")} onClick={()=>{
-                        setPForm({...emptyP,name:inq.name,phone:inq.phone,email:inq.email||"",department:inq.department||DEPARTMENTS[0]});
-                        setTab("New Patient"); showToast("Мэдээлэл шилжүүлэгдлээ!");
-                      }}>→ Бүртгэх</button>
+          <Card p={20} style={{marginBottom:18}}>
+            <div style={{fontSize:13,fontWeight:600,color:TXT,marginBottom:12}}>14-Day Travel Timeline</div>
+            <div style={{display:"flex",gap:4,overflowX:"auto"}}>
+              {Array.from({length:14}).map((_,i)=>{
+                const d=addDays(todayStr(),i); const items=timeline.filter(x=>x.date===d); const isToday=d===todayStr();
+                return (
+                  <div key={d} style={{flex:1,minWidth:56,background:isToday?BRAND_L:BG,borderRadius:8,padding:"7px 4px",border:"1px solid "+(isToday?BRAND:BOR)}}>
+                    <div style={{fontSize:9,fontWeight:600,color:isToday?BRAND:TXT3,textAlign:"center",marginBottom:4}}>
+                      {new Date(d+"T00:00").toLocaleDateString("en-US",{weekday:"short"})}<br/>
+                      <span style={{fontSize:10}}>{new Date(d+"T00:00").toLocaleDateString("en-US",{month:"numeric",day:"numeric"})}</span>
                     </div>
-                  </td>
-                </tr>
-              ))}</tbody>
+                    {items.map((it,j)=><div key={j} style={{background:it.type==="arrival"?"#dcfce7":"#dbeafe",borderRadius:4,padding:"3px 4px",marginBottom:2,border:"1px solid "+(it.type==="arrival"?"#86efac":"#93c5fd")}}><div style={{fontSize:9,fontWeight:600,color:it.type==="arrival"?"#15803d":"#1d4ed8"}}>{it.type==="arrival"?"↓":"↑"} {it.p.name.split(" ")[0]}</div></div>)}
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+          <div style={G2}>
+            <Card p={18}>
+              <div style={{fontSize:13,fontWeight:600,marginBottom:12}}>Pipeline Overview</div>
+              {["Inquiry","Medical Review","Hospital Contacted","Quotation Received","Patient Confirmed","In Treatment","Completed"].map(st=>{
+                const cnt=patients.filter(p=>p.status===st).length+leads.filter(l=>l.status===st&&!l.converted).length;
+                return <div key={st} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:"1px solid "+BOR}}><Pill color={PIPELINE_C[st]||"#64748b"}>{st}</Pill><span style={{fontWeight:700,fontSize:15,color:TXT}}>{cnt}</span></div>;
+              })}
+            </Card>
+            <Card p={18}>
+              <div style={{fontSize:13,fontWeight:600,marginBottom:10}}>Top Hospitals</div>
+              {hospitals.map(h=>({h,cnt:patients.filter(p=>p.hospitalId===h.id).length})).filter(x=>x.cnt>0).sort((a,b)=>b.cnt-a.cnt).slice(0,5).map(({h,cnt})=>(
+                <div key={h.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:"1px solid "+BOR}}>
+                  <div><div style={{fontSize:13,fontWeight:500}}>{h.name}</div><div style={{fontSize:11,color:TXT2}}>{h.city}</div></div>
+                  <span style={{fontWeight:700,color:BRAND,fontSize:15}}>{cnt}</span>
+                </div>
+              ))}
+              {!hospitals.some(h=>patients.some(p=>p.hospitalId===h.id))&&<div style={{color:TXT3,fontSize:13}}>No data yet</div>}
+            </Card>
+          </div>
+        </div>
+      );
+    },
+
+    Leads: () => {
+      const filtered=leads.filter(l=>{
+        if(fPrio!=="All"&&l.priority!==fPrio) return false;
+        if(fSrc!=="All"&&l.source!==fSrc) return false;
+        if(search&&!l.name.toLowerCase().includes(search.toLowerCase())&&!(l.phone||"").includes(search)) return false;
+        return true;
+      }).sort((a,b)=>a.priority==="🔴 Urgent"&&b.priority!=="🔴 Urgent"?-1:1);
+      return (
+        <div>
+          <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:14,alignItems:"center"}}>
+            <input style={{...inp,width:190}} placeholder="Search..." value={search} onChange={e=>setSearch(e.target.value)}/>
+            <select style={{...sel,width:135}} value={fPrio} onChange={e=>setFPrio(e.target.value)}><option value="All">All priorities</option>{PRIORITY.map(x=><option key={x}>{x}</option>)}</select>
+            <select style={{...sel,width:135}} value={fSrc} onChange={e=>setFSrc(e.target.value)}><option value="All">All sources</option>{LEAD_SOURCES.map(x=><option key={x}>{x}</option>)}</select>
+            <Btn onClick={()=>setShowForm(showForm==="lead"?null:"lead")}>+ New lead</Btn>
+            <span style={{color:TXT2,fontSize:12,marginLeft:"auto"}}>{filtered.length} · {leads.filter(l=>l.converted).length} converted</span>
+          </div>
+          {showForm==="lead"&&(
+            <Card p={18} style={{marginBottom:14}}>
+              <div style={{fontSize:14,fontWeight:600,marginBottom:14}}>New Lead</div>
+              <div style={G3}>
+                <FG label="Name *"><input style={inp} value={lf.name} onChange={e=>setLf(p=>({...p,name:e.target.value}))}/></FG>
+                <FG label="Phone *"><input style={inp} value={lf.phone} onChange={e=>setLf(p=>({...p,phone:e.target.value}))}/></FG>
+                <FG label="Age"><input style={inp} type="number" value={lf.age} onChange={e=>setLf(p=>({...p,age:e.target.value}))}/></FG>
+                <FG label="Source"><select style={sel} value={lf.source} onChange={e=>setLf(p=>({...p,source:e.target.value}))}>{LEAD_SOURCES.map(x=><option key={x}>{x}</option>)}</select></FG>
+                <FG label="Treatment"><select style={sel} value={lf.treatmentTag} onChange={e=>setLf(p=>({...p,treatmentTag:e.target.value}))}>{TREATMENT_TAGS.map(x=><option key={x}>{x}</option>)}</select></FG>
+                <FG label="Priority"><select style={sel} value={lf.priority} onChange={e=>setLf(p=>({...p,priority:e.target.value}))}>{PRIORITY.map(x=><option key={x}>{x}</option>)}</select></FG>
+                <FG label="Language"><select style={sel} value={lf.language} onChange={e=>setLf(p=>({...p,language:e.target.value}))}>{LANGUAGES.map(x=><option key={x}>{x}</option>)}</select></FG>
+                <FG label="Coordinator"><select style={sel} value={lf.coordinator} onChange={e=>setLf(p=>({...p,coordinator:e.target.value}))}>{COORDINATORS.map(x=><option key={x}>{x}</option>)}</select></FG>
+              </div>
+              <FG label="Notes"><textarea style={{...inp,height:55,resize:"vertical"}} value={lf.notes} onChange={e=>setLf(p=>({...p,notes:e.target.value}))}/></FG>
+              <div style={{display:"flex",gap:8}}><Btn onClick={addLead}>Save</Btn><Btn v="outline" onClick={()=>setShowForm(null)}>Cancel</Btn></div>
+            </Card>
+          )}
+          <Card p={0} style={{overflow:"hidden"}}>
+            <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead><tr>{["Name","Source","Treatment","Priority","Coordinator","Status",""].map(h=><th key={h} style={{textAlign:"left",fontSize:11,color:TXT3,fontWeight:600,padding:"9px 13px",borderBottom:"1px solid "+BOR,background:BG,textTransform:"uppercase"}}>{h}</th>)}</tr></thead>
+              <tbody>
+                {filtered.length?filtered.map(l=>(
+                  <tr key={l.id} style={{background:l.priority==="🔴 Urgent"&&!l.converted?"#fff5f5":SURF}}>
+                    <td style={td0}><div style={{fontWeight:600}}>{l.name}</div><div style={{fontSize:11,color:TXT2}}>{l.phone}</div></td>
+                    <td style={td0}><Tag>{l.source}</Tag></td>
+                    <td style={td0}><Tag color="#8b5cf6">{l.treatmentTag}</Tag></td>
+                    <td style={td0}><Pill color={PRIORITY_C[l.priority]||"#64748b"}>{l.priority}</Pill></td>
+                    <td style={td0}><span style={{fontSize:12,color:TXT2}}>{l.coordinator}</span></td>
+                    <td style={td0}>{l.converted?<Pill color="#10b981">Converted</Pill>:<Pill color={PIPELINE_C.Inquiry}>New</Pill>}</td>
+                    <td style={td0}><div style={{display:"flex",gap:5}}>{!l.converted&&<BtnSm v="success" onClick={()=>convertLead(l)}>→ Patient</BtnSm>}<BtnSm v="danger" onClick={async()=>{await saveL(leads.filter(x=>x.id!==l.id));toast_("Deleted.");}}>Delete</BtnSm></div></td>
+                  </tr>
+                )):<tr><td colSpan={7} style={{...td0,textAlign:"center",color:TXT3,padding:28}}>No leads yet</td></tr>}
+              </tbody>
             </table>
+          </Card>
+        </div>
+      );
+    },
+
+    Pipeline: () => (
+      <div style={{overflowX:"auto"}}>
+        <div style={{display:"flex",gap:10,minWidth:860,alignItems:"flex-start"}}>
+          {PIPELINE.slice(0,9).map(stage=>{
+            const pts=patients.filter(p=>p.status===stage);
+            return (
+              <div key={stage} style={{flex:1,minWidth:138,background:BG,borderRadius:12,padding:11,border:"1px solid "+BOR}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:9}}>
+                  <span style={{fontSize:10,fontWeight:700,color:PIPELINE_C[stage]||TXT2}}>{stage}</span>
+                  <span style={{background:(PIPELINE_C[stage]||"#64748b")+"20",color:PIPELINE_C[stage]||"#64748b",borderRadius:20,padding:"1px 7px",fontSize:10,fontWeight:700}}>{pts.length}</span>
+                </div>
+                {pts.map(p=>(
+                  <div key={p.id} onClick={()=>{setSelPat(p);setTab("Patients");}} style={{background:SURF,borderRadius:8,padding:"9px 10px",marginBottom:7,cursor:"pointer",border:"1px solid "+BOR}}>
+                    <div style={{fontWeight:600,fontSize:12}}>{p.name}</div>
+                    <div style={{fontSize:10,color:TXT2,marginTop:2}}>{p.diagnosis||p.treatmentTag||"—"}</div>
+                    {p.arrivalDate&&<div style={{fontSize:9,color:BRAND,marginTop:3,fontWeight:500}}>{"↓ "+fmtDate(p.arrivalDate)}</div>}
+                  </div>
+                ))}
+                {!pts.length&&<div style={{color:TXT3,fontSize:11,textAlign:"center",padding:"14px 0"}}>Empty</div>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    ),
+
+    Patients: () => {
+      const filtered=patients.filter(p=>{
+        if(fStage!=="All"&&p.status!==fStage) return false;
+        if(search&&!p.name.toLowerCase().includes(search.toLowerCase())&&!(p.phone||"").includes(search)&&!(p.diagnosis||"").toLowerCase().includes(search.toLowerCase())) return false;
+        return true;
+      }).sort((a,b)=>{
+        const da=a.referralDate||""; const db=b.referralDate||"";
+        if(!da&&!db) return 0; if(!da) return 1; if(!db) return -1;
+        return sortOrder==="desc"?db.localeCompare(da):da.localeCompare(db);
+      });
+      return (
+        <div>
+          <div style={{display:"flex",gap:9,flexWrap:"wrap",marginBottom:14,alignItems:"center"}}>
+            <input style={{...inp,width:220}} placeholder="이름 / 전화번호 / 진단명..." value={search} onChange={e=>setSearch(e.target.value)}/>
+            <select style={{...sel,width:160}} value={fStage} onChange={e=>setFStage(e.target.value)}><option value="All">All stages</option>{PIPELINE.map(x=><option key={x}>{x}</option>)}</select>
+            <Btn onClick={()=>setShowForm(showForm==="patient"?null:"patient")}>+ 신규 환자</Btn>
+            <button onClick={()=>setSortOrder(o=>o==="desc"?"asc":"desc")} style={{background:SURF,border:"1px solid "+BOR,borderRadius:8,padding:"9px 14px",fontSize:12,fontWeight:600,cursor:"pointer",color:TXT2}}>의뢰수신일 {sortOrder==="desc"?"↓ 최신순":"↑ 오래된순"}</button>
+            <Btn v="outline" onClick={()=>{setShowImport(true);setImportStep(1);}}>⬆ CSV Import</Btn>
+            <span style={{color:TXT2,fontSize:12,marginLeft:"auto"}}>{filtered.length} patients</span>
           </div>
-        )}
-      </>
-    );
-  };
+          {showForm==="patient"&&renderPatForm()}
+          {showImport&&renderImportModal()}
+          <Card p={0} style={{overflow:"hidden"}}>
+            <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead><tr>{["환자명","생년월일/나이","전화번호","의뢰수신일","진단명/진료과","선택병원","비자","단계",""].map(h=><th key={h} style={{textAlign:"left",fontSize:10,color:TXT3,fontWeight:600,padding:"9px 12px",borderBottom:"1px solid "+BOR,background:BG,textTransform:"uppercase",whiteSpace:"nowrap"}}>{h}</th>)}</tr></thead>
+              <tbody>
+                {filtered.length?filtered.map(p=>{
+                  const h=hospitals.find(h=>h.id===p.hospitalId);
+                  return (
+                    <tr key={p.id} style={{background:selPat&&selPat.id===p.id?"#eff6ff":SURF,cursor:"pointer"}} onClick={()=>{setSelPat(selPat&&selPat.id===p.id?null:p);setPTab("Info");}}>
+                      <td style={td0}><div style={{fontWeight:600}}>{p.name}</div>{p.interpreterNeeded==="Yes"&&<div style={{fontSize:10,color:"#f59e0b"}}>통역필요</div>}</td>
+                      <td style={td0}><div style={{fontSize:12}}>{p.dob?fmtDate(p.dob):"—"}</div>{p.age&&<div style={{fontSize:11,color:TXT2}}>{p.age}세</div>}</td>
+                      <td style={td0}><div style={{fontSize:12}}>{p.phone}</div>{p.sns&&<div style={{fontSize:11,color:TXT2}}>{p.sns}</div>}</td>
+                      <td style={td0}><div style={{fontSize:12}}>{p.referralDate?fmtDate(p.referralDate):"—"}</div></td>
+                      <td style={td0}>{p.diagnosis&&<div style={{fontWeight:500,fontSize:12}}>{p.diagnosis}</div>}{p.department&&<div style={{fontSize:11,color:TXT2}}>{p.department}</div>}</td>
+                      <td style={td0}><div style={{fontSize:12}}>{h?h.name:"—"}</div><div style={{fontSize:11,color:TXT2}}>{h?h.city:""}</div></td>
+                      <td style={td0}><Pill color={p.visaStatus==="Approved"?"#10b981":p.visaStatus==="Applied"?"#f59e0b":"#94a3b8"}>{p.visaStatus||"—"}</Pill></td>
+                      <td style={td0}><Pill color={PIPELINE_C[p.status]||"#64748b"}>{p.status||"Inquiry"}</Pill>{p.referralProgress&&<div style={{fontSize:10,color:TXT2,marginTop:3}}>{p.referralProgress}</div>}</td>
+                      <td style={td0} onClick={e=>e.stopPropagation()}><BtnSm v="danger" onClick={()=>deletePat(p.id)}>Delete</BtnSm></td>
+                    </tr>
+                  );
+                }):<tr><td colSpan={9} style={{...td0,textAlign:"center",color:TXT3,padding:28}}>No patients found</td></tr>}
+              </tbody>
+            </table>
+          </Card>
+          {selPat&&renderPatDetail(patients.find(p=>p.id===selPat.id)||selPat)}
+          {editPat&&editPat.id===(selPat&&selPat.id)&&renderEditPat()}
+        </div>
+      );
+    },
 
-  // NEW PATIENT
-  const renderNewPatient = () => (
-    <div style={{maxWidth:720}}>
-      <div style={S.card}>
-        <div style={S.sh}>Хувийн мэдээлэл</div>
-        <div style={S.g3}>
-          <div style={S.fg}><label style={S.lbl}>Нэр *</label><input style={S.inp} value={pForm.name} onChange={e=>setPForm({...pForm,name:e.target.value})} placeholder="Овог нэр"/></div>
-          <div style={S.fg}><label style={S.lbl}>Нас</label><input style={S.inp} type="number" value={pForm.age} onChange={e=>setPForm({...pForm,age:e.target.value})}/></div>
-          <div style={S.fg}><label style={S.lbl}>Хүйс</label><select style={S.sel} value={pForm.gender} onChange={e=>setPForm({...pForm,gender:e.target.value})}><option>Male</option><option>Female</option><option>Other</option></select></div>
-        </div>
-        <div style={S.g3}>
-          <div style={S.fg}><label style={S.lbl}>Харьяалал</label><select style={S.sel} value={pForm.nationality} onChange={e=>setPForm({...pForm,nationality:e.target.value})}>{COUNTRIES.map(c=><option key={c}>{c}</option>)}</select></div>
-          <div style={S.fg}><label style={S.lbl}>Утас *</label><input style={S.inp} value={pForm.phone} onChange={e=>setPForm({...pForm,phone:e.target.value})} placeholder="+976 ..."/></div>
-          <div style={S.fg}><label style={S.lbl}>И-мэйл</label><input style={S.inp} value={pForm.email} onChange={e=>setPForm({...pForm,email:e.target.value})}/></div>
-        </div>
-        <div style={S.sh}>Паспорт & Виз</div>
-        <div style={S.g3}>
-          <div style={S.fg}><label style={S.lbl}>Паспортын №</label><input style={S.inp} value={pForm.passport_no} onChange={e=>setPForm({...pForm,passport_no:e.target.value})}/></div>
-          <div style={S.fg}><label style={S.lbl}>Паспорт дуусах</label><input style={S.inp} type="date" value={pForm.passport_expiry} onChange={e=>setPForm({...pForm,passport_expiry:e.target.value})}/></div>
-          <div style={S.fg}><label style={S.lbl}>Визний статус</label><select style={S.sel} value={pForm.visa_status} onChange={e=>setPForm({...pForm,visa_status:e.target.value})}>{VISA_STATUSES.map(v=><option key={v}>{v}</option>)}</select></div>
-        </div>
-        <div style={S.sh}>Даатгал</div>
-        <div style={S.g2}>
-          <div style={S.fg}><label style={S.lbl}>Даатгалын компани</label><select style={S.sel} value={pForm.insurance_provider} onChange={e=>setPForm({...pForm,insurance_provider:e.target.value})}>{INSURANCE.map(i=><option key={i}>{i}</option>)}</select></div>
-          <div style={S.fg}><label style={S.lbl}>Полисын №</label><input style={S.inp} value={pForm.insurance_policy_no} onChange={e=>setPForm({...pForm,insurance_policy_no:e.target.value})}/></div>
-        </div>
-        <div style={S.sh}>Нислэг</div>
-        <div style={S.g3}>
-          <div style={S.fg}><label style={S.lbl}>Авиа компани</label><select style={S.sel} value={pForm.airline} onChange={e=>setPForm({...pForm,airline:e.target.value})}>{AIRLINES.map(a=><option key={a}>{a}</option>)}</select></div>
-          <div style={S.fg}><label style={S.lbl}>Ирэх огноо</label><input style={S.inp} type="date" value={pForm.arrival_date} onChange={e=>setPForm({...pForm,arrival_date:e.target.value})}/></div>
-          <div style={S.fg}><label style={S.lbl}>Буцах огноо</label><input style={S.inp} type="date" value={pForm.departure_date} onChange={e=>setPForm({...pForm,departure_date:e.target.value})}/></div>
-          <div style={S.fg}><label style={S.lbl}>Ирэх нислэгийн №</label><input style={S.inp} value={pForm.flight_arrival} onChange={e=>setPForm({...pForm,flight_arrival:e.target.value})} placeholder="KE876"/></div>
-          <div style={S.fg}><label style={S.lbl}>Буцах нислэгийн №</label><input style={S.inp} value={pForm.flight_departure} onChange={e=>setPForm({...pForm,flight_departure:e.target.value})} placeholder="KE877"/></div>
-        </div>
-        <div style={S.sh}>Нисэх буудлын трансфер</div>
-        <div style={S.g2}>
-          <div style={S.fg}><label style={S.lbl}>Трансфер</label><select style={S.sel} value={pForm.airport_transfer} onChange={e=>setPForm({...pForm,airport_transfer:e.target.value})}>{TRANSFER_OPTIONS.map(t=><option key={t}>{t}</option>)}</select></div>
-          <div style={S.fg}><label style={S.lbl}>Тэмдэглэл</label><input style={S.inp} value={pForm.transfer_notes} onChange={e=>setPForm({...pForm,transfer_notes:e.target.value})} placeholder="Жолооч, машины мэдээлэл..."/></div>
-        </div>
-        <div style={S.sh}>Байр (Солонгост)</div>
-        <div style={S.g2}>
-          <div style={S.fg}><label style={S.lbl}>Зочид буудал</label><input style={S.inp} value={pForm.hotel_name} onChange={e=>setPForm({...pForm,hotel_name:e.target.value})}/></div>
-          <div style={S.fg}><label style={S.lbl}>Хаяг</label><input style={S.inp} value={pForm.hotel_address} onChange={e=>setPForm({...pForm,hotel_address:e.target.value})}/></div>
-          <div style={S.fg}><label style={S.lbl}>Нэвтрэх</label><input style={S.inp} type="date" value={pForm.hotel_checkin} onChange={e=>setPForm({...pForm,hotel_checkin:e.target.value})}/></div>
-          <div style={S.fg}><label style={S.lbl}>Гарах</label><input style={S.inp} type="date" value={pForm.hotel_checkout} onChange={e=>setPForm({...pForm,hotel_checkout:e.target.value})}/></div>
-        </div>
-        <div style={S.sh}>Солонгосын эмнэлэг</div>
-        <div style={S.g3}>
-          <div style={S.fg}><label style={S.lbl}>Эмнэлэг *</label><select style={S.sel} value={pForm.hospital} onChange={e=>setPForm({...pForm,hospital:e.target.value})}>{HOSPITALS.map(h=><option key={h}>{h}</option>)}</select></div>
-          <div style={S.fg}><label style={S.lbl}>Тасаг *</label><select style={S.sel} value={pForm.department} onChange={e=>setPForm({...pForm,department:e.target.value})}>{DEPARTMENTS.map(d=><option key={d}>{d}</option>)}</select></div>
-          <div style={S.fg}><label style={S.lbl}>Эмчийн нэр</label><input style={S.inp} value={pForm.doctor} onChange={e=>setPForm({...pForm,doctor:e.target.value})} placeholder="Солонгос эмчийн нэр"/></div>
-        </div>
-        <div style={S.g3}>
-          <div style={S.fg}><label style={S.lbl}>Цаг захиалгын огноо</label><input style={S.inp} type="date" value={pForm.consult_date} onChange={e=>setPForm({...pForm,consult_date:e.target.value})}/></div>
-          <div style={S.fg}><label style={S.lbl}>Цаг</label><input style={S.inp} type="time" value={pForm.consult_time} onChange={e=>setPForm({...pForm,consult_time:e.target.value})}/></div>
-          <div style={S.fg}><label style={S.lbl}>Зардлын тооцоо (USD)</label><input style={S.inp} value={pForm.estimated_cost} onChange={e=>setPForm({...pForm,estimated_cost:e.target.value})} placeholder="$3,500"/></div>
-        </div>
-        <div style={S.fg}><label style={S.lbl}>Оношилгоо / Эмчилгээний тэмдэглэл</label><textarea style={{...S.inp,height:75,resize:"vertical"}} value={pForm.treatment_notes} onChange={e=>setPForm({...pForm,treatment_notes:e.target.value})} placeholder="Оношилгоо, хүссэн эмчилгээ..."/></div>
-        <div style={S.fg}><label style={S.lbl}>Явцын статус</label><select style={S.sel} value={pForm.status} onChange={e=>setPForm({...pForm,status:e.target.value})}>{STATUSES.map(s=><option key={s}>{s}</option>)}</select></div>
-        <button style={{...S.btn,opacity:saving?0.6:1}} onClick={addPatient} disabled={saving}>{saving?"Хадгалж байна...":"✓ Өвчтөн бүртгэх"}</button>
-      </div>
-    </div>
-  );
-
-  // PATIENT DETAIL
-  const renderDetail = p => {
-    const pNotes = notes.filter(n=>n.patient_id===p.id).sort((a,b)=>b.created_at>a.created_at?1:-1);
-    const pAppts = appointments.filter(a=>a.patient_id===p.id);
-    return(
-      <div style={{...S.card,marginTop:14}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
-          <div>
-            <div style={{fontSize:15,fontWeight:800,color:"#fff"}}>{p.name}</div>
-            <div style={{fontSize:11,color:"#475569"}}>🇲🇳 {p.nationality} → 🇰🇷 {p.hospital} · {p.department}</div>
+    Hospitals: () => {
+      const filtered=hospitals.filter(h=>(!search||h.name.toLowerCase().includes(search.toLowerCase()))&&(fSpec==="All"||(h.specialties||[]).includes(fSpec)));
+      const grouped={};
+      SPECIALTIES.forEach(sp=>{const hs=filtered.filter(h=>(h.specialties||[]).includes(sp));if(hs.length)grouped[sp]=hs;});
+      return (
+        <div>
+          <div style={{display:"flex",gap:9,flexWrap:"wrap",marginBottom:14,alignItems:"center"}}>
+            <input style={{...inp,width:190}} placeholder="병원 검색..." value={search} onChange={e=>setSearch(e.target.value)}/>
+            <select style={{...sel,width:165}} value={fSpec} onChange={e=>setFSpec(e.target.value)}><option value="All">All specialties</option>{SPECIALTIES.map(x=><option key={x}>{x}</option>)}</select>
+            <span style={{color:TXT2,fontSize:12,marginLeft:"auto"}}>{filtered.length} hospitals</span>
           </div>
-          <div style={{display:"flex",gap:7,alignItems:"center",flexWrap:"wrap"}}>
-            <select style={{...S.sel,width:180}} value={p.status||"Inquiry"} onChange={e=>updatePatientStatus(p.id,e.target.value)}>{STATUSES.map(st=><option key={st}>{st}</option>)}</select>
-            <button style={S.bsm("#dc2626")} onClick={()=>deletePatient(p.id)}>Устгах</button>
-            <button style={S.bsm("#334155")} onClick={()=>setSelectedPatient(null)}>✕</button>
-          </div>
-        </div>
-        <div style={{display:"flex",gap:6,marginBottom:14}}>
-          {["Info","Аялал","Эмнэлэг","Тэмдэглэл"].map(dt=><button key={dt} style={S.dtb(detailTab===dt)} onClick={()=>setDetailTab(dt)}>{dt}</button>)}
-        </div>
-        {detailTab==="Info"&&<div style={S.g2}><div><div style={S.sh}>Холбоо</div><IR label="Утас" val={p.phone}/><IR label="И-мэйл" val={p.email}/><div style={S.sh}>Паспорт & Виз</div><IR label="Паспортын №" val={p.passport_no}/><IR label="Паспорт дуусах" val={fmtDate(p.passport_expiry)}/><IR label="Визний статус" val={p.visa_status}/></div><div><div style={S.sh}>Даатгал</div><IR label="Компани" val={p.insurance_provider}/><IR label="Полис №" val={p.insurance_policy_no}/><div style={S.sh}>Байр</div><IR label="Зочид буудал" val={p.hotel_name}/><IR label="Хаяг" val={p.hotel_address}/><IR label="Нэвтрэх" val={fmtDate(p.hotel_checkin)}/><IR label="Гарах" val={fmtDate(p.hotel_checkout)}/></div></div>}
-        {detailTab==="Аялал"&&<div style={S.g2}><div><div style={S.sh}>Нислэг</div><IR label="Авиа компани" val={p.airline}/><IR label="Ирэх огноо" val={fmtDate(p.arrival_date)}/><IR label="Ирэх нислэг" val={p.flight_arrival}/><IR label="Буцах огноо" val={fmtDate(p.departure_date)}/><IR label="Буцах нислэг" val={p.flight_departure}/></div><div><div style={S.sh}>Трансфер</div><IR label="Төрөл" val={p.airport_transfer}/><IR label="Тэмдэглэл" val={p.transfer_notes}/></div></div>}
-        {detailTab==="Эмнэлэг"&&<div><div style={S.sh}>Эмнэлгийн мэдээлэл</div><IR label="Эмнэлэг" val={p.hospital}/><IR label="Тасаг" val={p.department}/><IR label="Эмч" val={p.doctor}/><IR label="Зардал" val={p.estimated_cost}/><IR label="Тэмдэглэл" val={p.treatment_notes}/><div style={{...S.sh,marginTop:14}}>Цаг захиалга</div>{pAppts.length?pAppts.map(a=><div key={a.id} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:"1px solid #1e2d45",fontSize:12}}><div><strong>{fmtDate(a.appt_date)}</strong> {a.appt_time} · {a.department}</div><span style={S.badge(a.status)}>{a.status}</span></div>):<div style={{color:"#475569",fontSize:12}}>Цаг захиалга байхгүй.</div>}</div>}
-        {detailTab==="Тэмдэглэл"&&<div><div style={S.sh}>Тэмдэглэлүүд</div><div style={{display:"flex",gap:8,marginBottom:12}}><textarea style={{...S.inp,flex:1,height:55,resize:"none"}} placeholder="Тэмдэглэл бичих..." value={notePatientId===p.id?noteText:""} onChange={e=>{setNoteText(e.target.value);setNotePatientId(p.id);}}/><button style={{...S.btn,padding:"0 14px",alignSelf:"stretch"}} onClick={addNote}>Нэмэх</button></div>{pNotes.length?pNotes.map(n=><div key={n.id} style={{background:"#080e1a",borderRadius:8,padding:"9px 12px",marginBottom:7}}><div style={{fontSize:12,color:"#e2e8f0",lineHeight:1.5}}>{n.text}</div><div style={{fontSize:10,color:"#334155",marginTop:4}}>{fmtDT(n.created_at)}</div></div>):<div style={{color:"#475569",fontSize:12}}>Тэмдэглэл байхгүй.</div>}</div>}
-      </div>
-    );
-  };
-
-  // PATIENTS
-  const renderPatients = () => (
-    <>
-      <div style={S.fr}>
-        <input style={{...S.inp,width:230}} placeholder="🔍 Нэр, эмнэлэг, тасаг..." value={search} onChange={e=>setSearch(e.target.value)}/>
-        <select style={{...S.sel,width:160}} value={filterStatus} onChange={e=>setFilterStatus(e.target.value)}><option>All</option>{STATUSES.map(s=><option key={s}>{s}</option>)}</select>
-        <select style={{...S.sel,width:180}} value={filterHospital} onChange={e=>setFilterHospital(e.target.value)}><option>All</option>{HOSPITALS.map(h=><option key={h}>{h}</option>)}</select>
-        <button style={{...S.btn,padding:"8px 14px",fontSize:11}} onClick={()=>setTab("New Patient")}>+ Шинэ</button>
-        <span style={{color:"#475569",fontSize:11}}>{filteredPatients.length} өвчтөн</span>
-      </div>
-      <div style={{...S.card,padding:0,overflow:"hidden"}}>
-        <table style={S.tbl}>
-          <thead><tr style={{background:"#0a1120"}}>{["Өвчтөн","Эмнэлэг","Тасаг / Эмч","Аялалын огноо","Статус",""].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
-          <tbody>{filteredPatients.length?filteredPatients.map(p=>(
-            <tr key={p.id} style={{background:selectedPatient?.id===p.id?"#1e2d45":"#0d1526",cursor:"pointer"}} onClick={()=>{setSelectedPatient(selectedPatient?.id===p.id?null:p);setDetailTab("Info");}}>
-              <td style={S.td}><div style={{fontWeight:700}}>{p.name}</div><div style={{fontSize:10,color:"#475569"}}>{p.phone}</div></td>
-              <td style={S.td}><div style={{fontSize:11}}>{p.hospital}</div><div style={{fontSize:10,color:"#475569"}}>📍 {p.hospital_city||"Korea"}</div></td>
-              <td style={S.td}><div style={{fontSize:11}}>{p.department}</div><div style={{fontSize:10,color:"#475569"}}>{p.doctor}</div></td>
-              <td style={S.td}><div style={{fontSize:11}}>🛬 {fmtDate(p.arrival_date)}</div><div style={{fontSize:11}}>🛫 {fmtDate(p.departure_date)}</div></td>
-              <td style={S.td}><span style={S.badge(p.status||"Inquiry")}>{p.status||"Inquiry"}</span></td>
-              <td style={S.td} onClick={e=>e.stopPropagation()}><button style={S.bsm("#dc2626")} onClick={()=>deletePatient(p.id)}>Устгах</button></td>
-            </tr>
-          )):<tr><td colSpan={6} style={{...S.td,textAlign:"center",color:"#475569",padding:32}}>Өвчтөн олдсонгүй.</td></tr>}</tbody>
-        </table>
-      </div>
-      {selectedPatient&&renderDetail(selectedPatient)}
-    </>
-  );
-
-  // APPOINTMENTS
-  const renderAppointments = () => {
-    const sorted=[...appointments].sort((a,b)=>a.appt_date>b.appt_date?-1:1).filter(a=>{const pt=patients.find(p=>p.id===a.patient_id);return !search||(pt?.name||"").toLowerCase().includes(search.toLowerCase())||(a.hospital||"").toLowerCase().includes(search.toLowerCase());});
-    return(
-      <>
-        <div style={S.fr}><input style={{...S.inp,width:260}} placeholder="🔍 Өвчтөн, эмнэлэг..." value={search} onChange={e=>setSearch(e.target.value)}/><span style={{color:"#475569",fontSize:11}}>{sorted.length} цаг захиалга</span></div>
-        <div style={{...S.card,padding:0,overflow:"hidden"}}>
-          <table style={S.tbl}>
-            <thead><tr style={{background:"#0a1120"}}>{["Өвчтөн","Эмнэлэг","Тасаг / Эмч","Огноо & Цаг","Статус",""].map(h=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
-            <tbody>{sorted.map(a=>{const pt=patients.find(p=>p.id===a.patient_id);return(
-              <tr key={a.id} style={{background:"#0d1526"}}>
-                <td style={S.td}><div style={{fontWeight:600}}>{pt?.name||"—"}</div></td>
-                <td style={S.td}><div style={{fontSize:11}}>{a.hospital||pt?.hospital||"—"}</div></td>
-                <td style={S.td}><div>{a.department}</div><div style={{fontSize:10,color:"#475569"}}>{a.doctor}</div></td>
-                <td style={S.td}><div>{fmtDate(a.appt_date)}</div><div style={{fontSize:10,color:"#475569"}}>{a.appt_time}</div></td>
-                <td style={S.td}><span style={S.badge(a.status)}>{a.status}</span></td>
-                <td style={S.td}><div style={{display:"flex",gap:4}}>
-                  {["Confirmed","Completed"].filter(st=>st!==a.status).map(st=><button key={st} style={S.bsm(st==="Confirmed"?"#1d4ed8":"#059669")} onClick={async()=>{await sb.patch('appointments',a.id,{status:st});await loadAll();showToast("Шинэчлэгдлээ.");}}>{st}</button>)}
-                  <button style={S.bsm("#dc2626")} onClick={async()=>{await sb.del('appointments',a.id);await loadAll();showToast("Устгагдлаа.");}}>Устгах</button>
-                </div></td>
-              </tr>
-            );})}</tbody>
-          </table>
-        </div>
-      </>
-    );
-  };
-
-  // FOLLOW-UPS
-  const renderFollowUps = () => (
-    <>
-      <div style={S.g2}>
-        <div style={S.card}>
-          <div style={S.sh}>Тэмдэглэл нэмэх</div>
-          <div style={S.fg}><label style={S.lbl}>Өвчтөн</label><select style={S.sel} value={notePatientId} onChange={e=>setNotePatientId(e.target.value)}><option value="">— Сонгоно уу —</option>{patients.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></div>
-          <div style={S.fg}><label style={S.lbl}>Тэмдэглэл</label><textarea style={{...S.inp,height:90,resize:"vertical"}} value={noteText} onChange={e=>setNoteText(e.target.value)} placeholder="Шинэчлэлт, мэдэгдэл, дараагийн алхам..."/></div>
-          <button style={S.btn} onClick={addNote}>Тэмдэглэл нэмэх</button>
-        </div>
-        <div style={S.card}>
-          <div style={S.sh}>Анхаарал шаардсан өвчтөнүүд</div>
-          {patients.filter(p=>["Follow-up","Returned to Mongolia","Treatment Complete"].includes(p.status)).map(p=>(
-            <div key={p.id} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #1e2d45"}}>
-              <div><div style={{fontWeight:600,fontSize:12}}>{p.name}</div><div style={{fontSize:10,color:"#475569"}}>{p.hospital}</div></div>
-              <span style={S.badge(p.status)}>{p.status}</span>
+          {Object.keys(grouped).map(sp=>(
+            <div key={sp} style={{marginBottom:22}}>
+              <div style={{display:"flex",alignItems:"center",gap:9,marginBottom:9}}><span style={{fontSize:13,fontWeight:600}}>{sp}</span><span style={{fontSize:11,color:TXT2}}>{grouped[sp].length}개</span><div style={{flex:1,height:1,background:BOR}}/></div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(230px,1fr))",gap:11}}>
+                {grouped[sp].map(h=>{
+                  const cnt=patients.filter(p=>p.hospitalId===h.id).length;
+                  return (
+                    <div key={h.id} onClick={()=>setSelHosp(selHosp&&selHosp.id===h.id?null:h)} style={{background:SURF,border:"1.5px solid "+(selHosp&&selHosp.id===h.id?BRAND:BOR),borderRadius:11,padding:14,cursor:"pointer"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:7}}><div style={{fontSize:13,fontWeight:600,flex:1,lineHeight:1.3}}>{h.name}</div><Pill color={TIER_C[h.tier]||"#64748b"}>{h.tier}</Pill></div>
+                      <div style={{fontSize:12,color:TXT2,marginBottom:7}}>{h.city} · {cnt}명{h.basePrice?" · $"+h.basePrice.toLocaleString():""}</div>
+                      <div style={{display:"flex",flexWrap:"wrap",gap:4}}>{(h.specialties||[]).slice(0,3).map(sp2=><Tag key={sp2}>{sp2}</Tag>)}</div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           ))}
-          {!patients.filter(p=>["Follow-up","Returned to Mongolia","Treatment Complete"].includes(p.status)).length&&<div style={{color:"#475569",fontSize:12}}>Одоохондоо байхгүй.</div>}
+          {selHosp&&(
+            <Card p={20} style={{marginTop:14,borderTop:"3px solid "+BRAND}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}>
+                <div><div style={{fontSize:15,fontWeight:700}}>{selHosp.name}</div><div style={{fontSize:12,color:TXT2,marginTop:2}}>{selHosp.city} · <Pill color={TIER_C[selHosp.tier]||"#64748b"}>{selHosp.tier}</Pill></div></div>
+                <BtnSm onClick={()=>setSelHosp(null)}>✕</BtnSm>
+              </div>
+              <IR label="Contact" val={selHosp.contactName}/><IR label="Email" val={selHosp.contactEmail}/><IR label="Phone" val={selHosp.contactPhone}/><IR label="Base Price" val={selHosp.basePrice?"$"+selHosp.basePrice.toLocaleString():null}/>
+              <div style={{marginTop:12}}><SH t="이 병원의 환자"/></div>
+              {patients.filter(p=>p.hospitalId===selHosp.id).map(p=>(
+                <div key={p.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:"1px solid "+BOR,cursor:"pointer"}} onClick={()=>{setSelPat(p);setPTab("Info");setTab("Patients");}}>
+                  <span style={{fontSize:13,fontWeight:500}}>{p.name}</span><Pill color={PIPELINE_C[p.status]||"#64748b"}>{p.status||"Inquiry"}</Pill>
+                </div>
+              ))}
+              {!patients.filter(p=>p.hospitalId===selHosp.id).length&&<div style={{color:TXT3,fontSize:13}}>환자가 없습니다.</div>}
+            </Card>
+          )}
         </div>
+      );
+    },
+
+    Communications: () => (
+      <div style={G2}>
+        <div>
+          <Card p={18} style={{marginBottom:14}}>
+            <div style={{fontSize:13,fontWeight:600,marginBottom:12}}>커뮤니케이션 기록</div>
+            <FG label="환자"><select style={sel} value={commTarget} onChange={e=>setCommTarget(e.target.value)}><option value="">환자 선택</option>{patients.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></FG>
+            <FG label="채널"><select style={sel} value={commChan} onChange={e=>setCommChan(e.target.value)}>{COMM_CHANNELS.map(x=><option key={x}>{x}</option>)}</select></FG>
+            <FG label="내용"><textarea style={{...inp,height:80,resize:"vertical"}} value={commText} onChange={e=>setCommText(e.target.value)}/></FG>
+            <Btn onClick={()=>commTarget&&commText.trim()&&addComm(commTarget)}>저장</Btn>
+          </Card>
+          <Card p={18}>
+            <div style={{fontSize:13,fontWeight:600,marginBottom:12}}>전체 커뮤니케이션</div>
+            {[...comms].sort((a,b)=>b.createdAt>a.createdAt?1:-1).slice(0,20).map(c=>{
+              const p=patients.find(pt=>pt.id===c.patientId);
+              return <div key={c.id} style={{display:"flex",gap:10,padding:"9px 0",borderBottom:"1px solid "+BOR}}><Tag>{c.channel}</Tag><div style={{flex:1}}><div style={{fontSize:12,fontWeight:500,color:BRAND}}>{p?p.name:"—"}</div><div style={{fontSize:13}}>{c.text}</div><div style={{fontSize:11,color:TXT2,marginTop:2}}>{fmtDT(c.createdAt)}</div></div></div>;
+            })}
+            {!comms.length&&<div style={{color:TXT3,fontSize:13}}>기록이 없습니다.</div>}
+          </Card>
+        </div>
+        <Card p={18}>
+          <div style={{fontSize:13,fontWeight:600,marginBottom:4}}>AI 번역</div>
+          <div style={{fontSize:12,color:TXT2,marginBottom:14}}>몽골어 ↔ 한국어 ↔ 영어</div>
+          <FG label="방향"><select style={sel} value={txLang} onChange={e=>setTxLang(e.target.value)}><option value="MN-KO">몽골어 → 한국어</option><option value="MN-EN">몽골어 → 영어</option><option value="KO-MN">한국어 → 몽골어</option><option value="EN-MN">영어 → 몽골어</option></select></FG>
+          <FG label="번역할 텍스트"><textarea style={{...inp,height:110,resize:"vertical"}} value={txIn} onChange={e=>setTxIn(e.target.value)} placeholder="텍스트 입력..."/></FG>
+          <Btn onClick={doTranslate} disabled={txLoading} style={{width:"100%",marginBottom:12}}>{txLoading?"번역 중...":"번역"}</Btn>
+          {txOut&&<div style={{background:BRAND_L,border:"1px solid "+BRAND_M,borderRadius:9,padding:13}}><div style={{fontSize:11,fontWeight:600,color:BRAND,marginBottom:5}}>번역 결과</div><div style={{fontSize:14,lineHeight:1.7}}>{txOut}</div></div>}
+        </Card>
       </div>
-      <div style={{...S.card,marginTop:14}}>
-        <div style={S.sh}>Бүх тэмдэглэл</div>
-        {[...notes].sort((a,b)=>b.created_at>a.created_at?1:-1).map(n=>{const pt=patients.find(p=>p.id===n.patient_id);return(
-          <div key={n.id} style={{display:"flex",gap:12,padding:"9px 0",borderBottom:"1px solid #1e2d45"}}>
-            <div style={{background:"#1e2d45",borderRadius:6,padding:"5px 10px",minWidth:100,textAlign:"center",flexShrink:0}}><div style={{fontSize:11,fontWeight:700,color:"#38bdf8"}}>{pt?.name||"—"}</div><div style={{fontSize:9,color:"#475569"}}>{pt?.hospital?.split(" ").slice(0,2).join(" ")}</div></div>
-            <div><div style={{fontSize:12,color:"#e2e8f0",lineHeight:1.5}}>{n.text}</div><div style={{fontSize:10,color:"#334155",marginTop:4}}>{fmtDT(n.created_at)}</div></div>
+    ),
+
+    Travel: () => {
+      const tPts=patients.filter(p=>p.arrivalDate||p.departureDate).sort((a,b)=>a.arrivalDate>b.arrivalDate?1:-1);
+      return (
+        <div>
+          <div style={{...G4,marginBottom:18}}>
+            <StatCard label="비자 대기" value={patients.filter(p=>["Not Applied","Applied"].includes(p.visaStatus)).length} color="#f59e0b"/>
+            <StatCard label="비자 승인" value={patients.filter(p=>p.visaStatus==="Approved").length} color="#10b981"/>
+            <StatCard label="이번 주 입국" value={patients.filter(p=>p.arrivalDate>=todayStr()&&p.arrivalDate<=addDays(todayStr(),7)).length} color={BRAND}/>
+            <StatCard label="공항 픽업 필요" value={patients.filter(p=>p.airportTransfer&&p.airportTransfer!=="Not Required").length} color="#8b5cf6"/>
           </div>
-        );})}
-        {!notes.length&&<div style={{color:"#475569",fontSize:12}}>Тэмдэглэл байхгүй.</div>}
-      </div>
-    </>
-  );
+          <Card p={0} style={{overflow:"hidden"}}>
+            <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead><tr>{["환자","병원","입국","출국","비자","단계",""].map(h=><th key={h} style={{textAlign:"left",fontSize:10,color:TXT3,fontWeight:600,padding:"9px 12px",borderBottom:"1px solid "+BOR,background:BG,textTransform:"uppercase"}}>{h}</th>)}</tr></thead>
+              <tbody>{tPts.length?tPts.map(p=>{
+                const h=hospitals.find(h=>h.id===p.hospitalId);
+                return <tr key={p.id}><td style={td0}><div style={{fontWeight:600}}>{p.name}</div></td><td style={td0}>{h?h.name:"—"}</td><td style={td0}>{"↓ "+fmtDate(p.arrivalDate)}</td><td style={td0}>{"↑ "+fmtDate(p.departureDate)}</td><td style={td0}><Pill color={p.visaStatus==="Approved"?"#10b981":"#94a3b8"}>{p.visaStatus||"—"}</Pill></td><td style={td0}><Pill color={PIPELINE_C[p.status]||"#64748b"}>{p.status||"—"}</Pill></td><td style={td0}><BtnSm v="primary" onClick={()=>{setSelPat(p);setPTab("Travel");setTab("Patients");}}>보기</BtnSm></td></tr>;
+              }):<tr><td colSpan={7} style={{...td0,textAlign:"center",color:TXT3,padding:28}}>여행 기록 없음</td></tr>}</tbody>
+            </table>
+          </Card>
+        </div>
+      );
+    },
 
-  const renders = {Dashboard:renderDashboard,Inquiries:renderInquiries,"New Patient":renderNewPatient,Patients:renderPatients,Appointments:renderAppointments,"Follow-ups":renderFollowUps};
+    Aftercare: () => {
+      const acPts=patients.filter(p=>["Aftercare","Completed"].includes(p.status));
+      return (
+        <div>
+          <div style={{...G4,marginBottom:18}}>{AFTERCARE_SCHEDULE.map(m=>{const cnt=aftercare.filter(a=>a.milestone===m&&a.status==="Pending").length;return <StatCard key={m} label={m+" 대기"} value={cnt} color={cnt>0?"#f59e0b":"#10b981"}/>;})}</div>
+          <div style={G2}>
+            <Card p={18}><div style={{fontSize:13,fontWeight:600,marginBottom:12}}>사후관리 환자</div>
+              {acPts.length?acPts.map(p=>{const pAC=aftercare.filter(a=>a.patientId===p.id);return <div key={p.id} style={{padding:"10px 0",borderBottom:"1px solid "+BOR}}><div style={{display:"flex",justifyContent:"space-between"}}><div style={{fontWeight:600}}>{p.name}</div><Pill color={PIPELINE_C[p.status]||"#64748b"}>{p.status}</Pill></div><div style={{display:"flex",gap:5,marginTop:7,flexWrap:"wrap"}}>{AFTERCARE_SCHEDULE.map(m=>{const a=pAC.find(a=>a.milestone===m);return <Pill key={m} color={a&&a.status==="Completed"?"#10b981":a?"#f59e0b":"#94a3b8"}>{m}: {a?a.status:"—"}</Pill>;})}</div></div>;}):<div style={{color:TXT3,fontSize:13}}>없음</div>}
+            </Card>
+            <Card p={18}><div style={{fontSize:13,fontWeight:600,marginBottom:12}}>대기 중 팔로우업</div>
+              {aftercare.filter(a=>a.status==="Pending").map(a=>{const p=patients.find(pt=>pt.id===a.patientId);return <div key={a.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:"1px solid "+BOR}}><div><div style={{fontWeight:500,fontSize:13}}>{p?p.name:"—"}</div><div style={{fontSize:11,color:TXT2}}>{a.milestone} follow-up</div></div><div style={{display:"flex",gap:6}}><BtnSm v="success" onClick={async()=>{await saveAC(aftercare.map(x=>x.id===a.id?{...x,status:"Completed"}:x));toast_("완료.");}}>완료</BtnSm></div></div>;})}</Card>
+          </div>
+        </div>
+      );
+    },
 
-  return(
-    <div style={S.app}>
-      <div style={S.sb}>
-        <div style={S.lb}>
-          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}><span style={{fontSize:12}}>🇲🇳✈🇰🇷</span></div>
-          <div style={{fontWeight:900,fontSize:12,color:"#38bdf8"}}>GEREL MEDI TOUR</div>
-          <div style={{fontSize:9,color:"#334155",marginTop:1}}>Mongolia → Korea CRM</div>
+    Finance: () => {
+      const pend=invoices.filter(i=>["Sent","Partially Paid","Overdue"].includes(i.status)).reduce((s,i)=>s+i.total,0);
+      return (
+        <div>
+          <div style={{...G4,marginBottom:18}}>
+            <StatCard label="총 수익" value={"$"+paid.toLocaleString()} color="#10b981"/>
+            <StatCard label="미수금" value={"$"+pend.toLocaleString()} color="#f59e0b"/>
+            <StatCard label="청구서 수" value={invoices.length} color={BRAND}/>
+            <div style={{background:SURF,border:"1px solid "+BOR,borderRadius:12,padding:"16px 18px",display:"flex",alignItems:"center",justifyContent:"center"}}><Btn onClick={()=>{setInvF(emptyInv);setInvModal("new");}}>+ 청구서</Btn></div>
+          </div>
+          <Card p={0} style={{overflow:"hidden"}}>
+            <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead><tr>{["Invoice","환자","Due","합계","상태",""].map(h=><th key={h} style={{textAlign:"left",fontSize:10,color:TXT3,fontWeight:600,padding:"9px 12px",borderBottom:"1px solid "+BOR,background:BG,textTransform:"uppercase"}}>{h}</th>)}</tr></thead>
+              <tbody>{invoices.length?[...invoices].sort((a,b)=>b.createdAt>a.createdAt?1:-1).map(inv=>{const p=patients.find(p=>p.id===inv.patientId);return <tr key={inv.id}><td style={td0}><span style={{fontFamily:"monospace",fontSize:12,fontWeight:600,color:BRAND}}>{"#"+inv.id.slice(-6).toUpperCase()}</span></td><td style={td0}>{p?p.name:"—"}</td><td style={td0}>{fmtDate(inv.dueDate)}</td><td style={td0}><span style={{fontWeight:700,color:"#059669"}}>{"$"+(inv.total||0).toLocaleString()}</span></td><td style={td0}><Pill color={INV_C[inv.status]||"#64748b"}>{inv.status}</Pill></td><td style={td0}><div style={{display:"flex",gap:5}}><BtnSm v="primary" onClick={()=>{setInvF(inv);setInvModal(inv.id);}}>편집</BtnSm><BtnSm v="danger" onClick={async()=>{await saveInv(invoices.filter(i=>i.id!==inv.id));toast_("삭제.");}}>삭제</BtnSm></div></td></tr>;}): <tr><td colSpan={6} style={{...td0,textAlign:"center",color:TXT3,padding:28}}>청구서 없음</td></tr>}</tbody>
+            </table>
+          </Card>
         </div>
-        <div style={{padding:"8px 0"}}>
-          {TABS.map(t=>(
-            <button key={t} style={S.nb(tab===t)} onClick={()=>{setTab(t);setSearch("");}}>
-              <span style={{fontSize:12}}>{ICONS[t]}</span>{t}
-            </button>
-          ))}
+      );
+    },
+
+    Reports: () => {
+      const bySource={};LEAD_SOURCES.forEach(x=>{bySource[x]=leads.filter(l=>l.source===x).length;});
+      const byHosp=hospitals.map(h=>({h,cnt:patients.filter(p=>p.hospitalId===h.id).length})).filter(x=>x.cnt>0).sort((a,b)=>b.cnt-a.cnt);
+      const maxH=Math.max(...byHosp.map(x=>x.cnt),1);
+      const maxS=Math.max(...Object.values(bySource),1);
+      const csvP=()=>{
+        const cols=["환자명","생년월일","전화번호","SNS","의뢰수신일","진단명","진료과","선택병원","단계","입국일","출국일","비자"];
+        const rows=patients.map(p=>{const h=hospitals.find(h=>h.id===p.hospitalId);return [p.name,p.dob,p.phone,p.sns,p.referralDate,p.diagnosis,p.department,h?h.name:"",p.status||"",p.arrivalDate,p.departureDate,p.visaStatus].map(v=>'"'+(v||"").toString().replace(/"/g,'""')+'"').join(",");});
+        const a=document.createElement("a");a.href="data:text/csv;charset=utf-8,"+encodeURIComponent([cols.join(","),...rows].join("\n"));a.download="gerel_patients.csv";a.click();
+      };
+      return (
+        <div>
+          <div style={{...G4,marginBottom:18}}>
+            <StatCard label="총 리드" value={leads.length} color="#f59e0b"/>
+            <StatCard label="전환율" value={conv+"%"} sub="리드→환자" color="#8b5cf6"/>
+            <StatCard label="총 수익" value={"$"+paid.toLocaleString()} color="#10b981"/>
+            <StatCard label="총 환자" value={patients.length} color={BRAND}/>
+          </div>
+          <div style={{display:"flex",gap:9,marginBottom:18}}><Btn onClick={csvP}>⬇ 환자 CSV 내보내기</Btn></div>
+          <div style={G2}>
+            <Card p={18}><div style={{fontSize:13,fontWeight:600,marginBottom:12}}>리드 소스별</div>
+              {Object.entries(bySource).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).map(([src,cnt])=>(
+                <div key={src} style={{marginBottom:9}}><div style={{display:"flex",justifyContent:"space-between",fontSize:13,marginBottom:4}}><span>{src}</span><span style={{fontWeight:600}}>{cnt}</span></div><div style={{background:BOR,borderRadius:4,height:6}}><div style={{width:Math.round(cnt/maxS*100)+"%",height:"100%",background:BRAND,borderRadius:4}}/></div></div>
+              ))}
+            </Card>
+            <Card p={18}><div style={{fontSize:13,fontWeight:600,marginBottom:12}}>병원별 환자</div>
+              {byHosp.slice(0,8).map(({h,cnt})=>(
+                <div key={h.id} style={{marginBottom:9}}><div style={{display:"flex",justifyContent:"space-between",fontSize:13,marginBottom:4}}><span style={{fontWeight:500}}>{h.name}</span><span style={{fontWeight:600}}>{cnt}</span></div><div style={{background:BOR,borderRadius:4,height:6}}><div style={{width:Math.round(cnt/maxH*100)+"%",height:"100%",background:"#10b981",borderRadius:4}}/></div></div>
+              ))}
+              {!byHosp.length&&<div style={{color:TXT3,fontSize:13}}>데이터 없음</div>}
+            </Card>
+            <Card p={18}><div style={{fontSize:13,fontWeight:600,marginBottom:12}}>단계별 현황</div>
+              {PIPELINE.map(st=>{const cnt=patients.filter(p=>p.status===st).length;return cnt>0?<div key={st} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:"1px solid "+BOR}}><Pill color={PIPELINE_C[st]||"#64748b"}>{st}</Pill><span style={{fontWeight:700,fontSize:15}}>{cnt}</span></div>:null;})}
+            </Card>
+          </div>
         </div>
-        <div style={{marginTop:"auto",padding:"0 14px"}}>
-          <div style={{fontSize:9,color:"#1e2d45",marginBottom:4}}>🗄️ Supabase холбоотой</div>
-          <div style={{fontSize:9,color:"#1e2d45"}}>{patients.length} өвчтөн · {appointments.length} цаг · {notes.length} тэмдэглэл</div>
+      );
+    },
+
+    Quotations: () => {
+      const patientQuotes=patients.map(p=>({p,qs:quotes.filter(q=>q.patientId===p.id)})).filter(x=>x.qs.length>0);
+      return (
+        <div>
+          <div style={{display:"flex",gap:10,alignItems:"center",marginBottom:18}}>
+            <Btn onClick={()=>setShowForm(showForm==="quote"?null:"quote")}>+ 견적 추가</Btn>
+          </div>
+          {showForm==="quote"&&(
+            <Card p={20} style={{marginBottom:18}}>
+              <div style={{fontSize:14,fontWeight:600,marginBottom:14}}>견적 작성</div>
+              <FG label="Patient"><select style={sel} value={qf.patientId} onChange={e=>setQf(f=>({...f,patientId:e.target.value}))}><option value="">환자 선택</option>{patients.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></FG>
+              {qf.items.map((row,i)=>(
+                <div key={i} style={{background:BG,border:"1px solid "+BOR,borderRadius:12,padding:14,marginBottom:11}}>
+                  <FG label="병원"><select style={sel} value={row.hospitalId} onChange={e=>{const items=[...qf.items];items[i]={...items[i],hospitalId:e.target.value};setQf(f=>({...f,items}));}}><option value="">선택</option>{hospitals.map(h=><option key={h.id} value={h.id}>{h.name}</option>)}</select></FG>
+                  <div style={G4}>
+                    {[["surgeryPrice","Surgery $"],["hotelPrice","Hotel $"],["interpreterPrice","Interpreter $"],["transportPrice","Transport $"]].map(([k,label])=>(
+                      <FG key={k} label={label}><input style={inp} type="number" value={row[k]||0} onChange={e=>{const items=[...qf.items];items[i]={...items[i],[k]:Number(e.target.value)};setQf(f=>({...f,items}));}}/></FG>
+                    ))}
+                  </div>
+                  <div style={{fontWeight:700,color:"#059669"}}>합계: ${(Number(row.surgeryPrice||0)+Number(row.hotelPrice||0)+Number(row.interpreterPrice||0)+Number(row.transportPrice||0)).toLocaleString()}</div>
+                </div>
+              ))}
+              {qf.items.length<3&&<Btn v="outline" onClick={()=>setQf(f=>({...f,items:[...f.items,{hospitalId:"",surgeryPrice:0,hotelPrice:0,interpreterPrice:0,transportPrice:0,duration:0,notes:""}]}))} style={{marginBottom:12}}>+ 옵션 추가</Btn>}
+              <div style={{display:"flex",gap:8,marginTop:8}}><Btn onClick={doSaveQuote}>저장</Btn><Btn v="outline" onClick={()=>setShowForm(null)}>취소</Btn></div>
+            </Card>
+          )}
+          {!quotes.length&&<Card p={36} style={{textAlign:"center",color:TXT3}}><div>견적이 없습니다.</div></Card>}
+          {patientQuotes.map(({p,qs})=>{
+            const allItems=qs.flatMap(q=>(q.items||[]).map(item=>({...item,qId:q.id})));
+            const isExp=selQ===p.id;
+            return (
+              <Card key={p.id} p={0} style={{marginBottom:14,overflow:"hidden"}}>
+                <div onClick={()=>setSelQ(isExp?null:p.id)} style={{display:"flex",alignItems:"center",gap:12,padding:"14px 18px",cursor:"pointer",background:isExp?BRAND_L:SURF}}>
+                  <div style={{flex:1}}><div style={{fontSize:13,fontWeight:700}}>{p.name}</div><Pill color={PIPELINE_C[p.status]||"#64748b"}>{p.status||"Inquiry"}</Pill></div>
+                  <div style={{fontWeight:700,color:BRAND}}>{allItems.length} 옵션</div>
+                  <div style={{fontSize:16,color:isExp?BRAND:TXT3}}>{isExp?"▲":"▼"}</div>
+                </div>
+                {isExp&&(
+                  <div style={{padding:18}}>
+                    {allItems.map((row,i)=>{
+                      const hosp=hospitals.find(h=>h.id===row.hospitalId);
+                      const total=Number(row.surgeryPrice||0)+Number(row.hotelPrice||0)+Number(row.interpreterPrice||0)+Number(row.transportPrice||0);
+                      return <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:"1px solid "+BOR}}><div style={{fontWeight:500}}>{hosp?hosp.name:"미선택"}</div><div style={{fontWeight:700,color:"#059669",fontSize:15}}>{"$"+total.toLocaleString()}</div></div>;
+                    })}
+                  </div>
+                )}
+              </Card>
+            );
+          })}
         </div>
-      </div>
-      <div style={S.main}>
-        <div style={{marginBottom:18,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+      );
+    },
+  };
+
+  function renderPatForm() {
+    const set = k => e => setPf(p=>({...p,[k]:e.target.value}));
+    return (
+      <Card p={20} style={{marginBottom:14}}>
+        <div style={{fontSize:14,fontWeight:700,marginBottom:16}}>신규 환자 등록</div>
+        <SH t="의뢰 정보"/>
+        <div style={G3}>
+          <FG label="의뢰수신일"><input style={inp} type="date" value={pf.referralDate} onChange={set("referralDate")}/></FG>
+          <FG label="의뢰 진행 현황"><input style={inp} value={pf.referralProgress} onChange={set("referralProgress")} placeholder="예: 서류 검토 중"/></FG>
+          <FG label="진료 예약 현황"><input style={inp} value={pf.appointmentStatus} onChange={set("appointmentStatus")} placeholder="예: 예약 완료"/></FG>
+        </div>
+        <SH t="환자 기본정보"/>
+        <div style={G3}>
+          <FG label="환자명 *"><input style={inp} value={pf.name} onChange={set("name")}/></FG>
+          <FG label="전화번호 *"><input style={inp} value={pf.phone} onChange={set("phone")}/></FG>
+          <FG label="SNS"><input style={inp} value={pf.sns} onChange={set("sns")} placeholder="@카카오 / WhatsApp"/></FG>
+          <FG label="생년월일"><input style={inp} type="date" value={pf.dob} onChange={e=>{const d=e.target.value;setPf(p=>({...p,dob:d,age:d?String(calcAge(d)):""}));}}/></FG>
+          <FG label="나이"><input style={{...inp,background:pf.dob?"#f1f5f9":SURF}} type="number" value={pf.age} readOnly={!!pf.dob} onChange={e=>!pf.dob&&setPf(p=>({...p,age:e.target.value}))}/></FG>
+          <FG label="Gender"><select style={sel} value={pf.gender} onChange={set("gender")}><option>Male</option><option>Female</option><option>Other</option></select></FG>
+          <FG label="Language"><select style={sel} value={pf.language} onChange={set("language")}>{LANGUAGES.map(x=><option key={x}>{x}</option>)}</select></FG>
+          <FG label="Interpreter"><select style={sel} value={pf.interpreterNeeded} onChange={set("interpreterNeeded")}><option value="No">No</option><option value="Yes">Yes</option></select></FG>
+          <FG label="Coordinator"><select style={sel} value={pf.coordinator} onChange={set("coordinator")}>{COORDINATORS.map(x=><option key={x}>{x}</option>)}</select></FG>
+        </div>
+        <SH t="진단 및 진료과"/>
+        <div style={G3}>
+          <FG label="진단명"><input style={inp} value={pf.diagnosis} onChange={set("diagnosis")} placeholder="예: 백내장"/></FG>
+          <FG label="진료과"><input style={inp} value={pf.department} onChange={set("department")} placeholder="예: 안과"/></FG>
+          <FG label="Treatment Tag"><select style={sel} value={pf.treatmentTag} onChange={set("treatmentTag")}><option value="">— Select —</option>{TREATMENT_TAGS.map(x=><option key={x}>{x}</option>)}</select></FG>
+          <FG label="선택병원"><select style={sel} value={pf.hospitalId} onChange={set("hospitalId")}><option value="">— Select —</option>{hospitals.filter(h=>h.active).map(h=><option key={h.id} value={h.id}>{h.name} ({h.city})</option>)}</select></FG>
+          <FG label="Stage"><select style={sel} value={pf.status} onChange={set("status")}>{PIPELINE.map(x=><option key={x}>{x}</option>)}</select></FG>
+        </div>
+        <SH t="여권 & 비자"/>
+        <div style={G3}>
+          <FG label="Passport No."><input style={inp} value={pf.passportNo} onChange={set("passportNo")}/></FG>
+          <FG label="Passport Expiry"><input style={inp} type="date" value={pf.passportExpiry} onChange={set("passportExpiry")}/></FG>
+          <FG label="Visa Status"><select style={sel} value={pf.visaStatus} onChange={set("visaStatus")}>{VISA_ST.map(x=><option key={x}>{x}</option>)}</select></FG>
+        </div>
+        <SH t="여행 정보"/>
+        <div style={G3}>
+          <FG label="Arrival Date"><input style={inp} type="date" value={pf.arrivalDate} onChange={set("arrivalDate")}/></FG>
+          <FG label="Departure Date"><input style={inp} type="date" value={pf.departureDate} onChange={set("departureDate")}/></FG>
+          <FG label="Airport Transfer"><select style={sel} value={pf.airportTransfer} onChange={set("airportTransfer")}>{TRANSFER.map(x=><option key={x}>{x}</option>)}</select></FG>
+          <FG label="Hotel"><input style={inp} value={pf.hotelName} onChange={set("hotelName")}/></FG>
+        </div>
+        <div style={{display:"flex",gap:8}}><Btn onClick={addPatient}>등록</Btn><Btn v="outline" onClick={()=>setShowForm(null)}>취소</Btn></div>
+      </Card>
+    );
+  }
+
+  function renderEditPat() {
+    if(!editPat) return null;
+    const set=k=>e=>setEditPat(prev=>({...prev,[k]:e.target.value}));
+    return (
+      <Card p={20} style={{marginTop:14,borderTop:"3px solid #f59e0b"}}>
+        <div style={{display:"flex",justifyContent:"space-between",marginBottom:16}}>
+          <div style={{fontSize:14,fontWeight:700}}>Edit: {editPat.name}</div>
+          <BtnSm v="danger" onClick={()=>setEditPat(null)}>Cancel</BtnSm>
+        </div>
+        <div style={G3}>
+          <FG label="의뢰수신일"><input style={inp} type="date" value={editPat.referralDate||""} onChange={set("referralDate")}/></FG>
+          <FG label="의뢰 진행 현황"><input style={inp} value={editPat.referralProgress||""} onChange={set("referralProgress")}/></FG>
+          <FG label="진료 예약 현황"><input style={inp} value={editPat.appointmentStatus||""} onChange={set("appointmentStatus")}/></FG>
+          <FG label="환자명 *"><input style={inp} value={editPat.name} onChange={set("name")}/></FG>
+          <FG label="전화번호"><input style={inp} value={editPat.phone} onChange={set("phone")}/></FG>
+          <FG label="SNS"><input style={inp} value={editPat.sns||""} onChange={set("sns")}/></FG>
+          <FG label="생년월일"><input style={inp} type="date" value={editPat.dob||""} onChange={e=>{const d=e.target.value;setEditPat(prev=>({...prev,dob:d,age:d?String(calcAge(d)):prev.age}));}}/></FG>
+          <FG label="나이"><input style={{...inp,background:editPat.dob?"#f1f5f9":SURF}} type="number" value={editPat.age||""} readOnly={!!editPat.dob} onChange={e=>!editPat.dob&&setEditPat(prev=>({...prev,age:e.target.value}))}/></FG>
+          <FG label="진단명"><input style={inp} value={editPat.diagnosis||""} onChange={set("diagnosis")}/></FG>
+          <FG label="진료과"><input style={inp} value={editPat.department||""} onChange={set("department")}/></FG>
+          <FG label="선택병원"><select style={sel} value={editPat.hospitalId||""} onChange={set("hospitalId")}><option value="">— Select —</option>{hospitals.map(h=><option key={h.id} value={h.id}>{h.name}</option>)}</select></FG>
+          <FG label="Stage"><select style={sel} value={editPat.status} onChange={set("status")}>{PIPELINE.map(x=><option key={x}>{x}</option>)}</select></FG>
+          <FG label="Visa Status"><select style={sel} value={editPat.visaStatus} onChange={set("visaStatus")}>{VISA_ST.map(x=><option key={x}>{x}</option>)}</select></FG>
+          <FG label="Arrival Date"><input style={inp} type="date" value={editPat.arrivalDate||""} onChange={set("arrivalDate")}/></FG>
+          <FG label="Departure Date"><input style={inp} type="date" value={editPat.departureDate||""} onChange={set("departureDate")}/></FG>
+        </div>
+        <div style={{display:"flex",gap:8}}><Btn onClick={saveEditPat}>저장</Btn><Btn v="outline" onClick={()=>setEditPat(null)}>취소</Btn></div>
+      </Card>
+    );
+  }
+
+  function renderPatDetail(p) {
+    const h=hospitals.find(h=>h.id===p.hospitalId);
+    const pComms=comms.filter(c=>c.patientId===p.id).sort((a,b)=>b.createdAt>a.createdAt?1:-1);
+    const pDocs=docs.filter(d=>d.patientId===p.id);
+    const pInvs=invoices.filter(i=>i.patientId===p.id);
+    const pAC=aftercare.filter(a=>a.patientId===p.id);
+    const DTABS=[["Info","정보"],["Comms","커뮤니케이션"],["Medical","진단"],["Travel","여행"],["Docs","서류"],["Finance","재무"],["Aftercare","사후관리"]];
+    return (
+      <Card p={20} style={{marginTop:14,borderTop:"3px solid "+BRAND}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
           <div>
-            <div style={{fontSize:18,fontWeight:800,color:"#fff"}}>{tab}</div>
-            <div style={{fontSize:11,color:"#475569",marginTop:2}}>{new Date().toLocaleDateString("mn-MN",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</div>
+            <div style={{fontSize:16,fontWeight:700}}>{p.name}</div>
+            <div style={{fontSize:12,color:TXT2,marginTop:2}}>{p.dob?fmtDate(p.dob)+" · ":""}{p.age?p.age+"세 · ":""}{p.gender} · {p.language}</div>
+            <div style={{fontSize:12,color:BRAND,marginTop:2,fontWeight:500}}>{h?h.name+" · "+h.city:"병원 미배정"}{p.diagnosis&&" · "+p.diagnosis}</div>
           </div>
-          <button style={{...S.btn,padding:"7px 14px",fontSize:11}} onClick={loadAll}>🔄 Шинэчлэх</button>
+          <div style={{display:"flex",gap:7,alignItems:"center"}}>
+            <select style={{...sel,width:158}} value={p.status||"Inquiry"} onChange={e=>updateStage(p.id,e.target.value)}>{PIPELINE.map(x=><option key={x}>{x}</option>)}</select>
+            <BtnSm v="primary" onClick={()=>setEditPat(editPat&&editPat.id===p.id?null:{...p})}>{editPat&&editPat.id===p.id?"취소":"편집"}</BtnSm>
+            <BtnSm v="danger" onClick={()=>deletePat(p.id)}>삭제</BtnSm>
+            <BtnSm onClick={()=>{setSelPat(null);setEditPat(null);}}>✕</BtnSm>
+          </div>
         </div>
-        {renders[tab]?.()}
+        <div style={{display:"flex",gap:4,marginBottom:14,borderBottom:"1px solid "+BOR,paddingBottom:10,flexWrap:"wrap"}}>
+          {DTABS.map(([key,label])=><button key={key} style={{background:pTab===key?BRAND:"transparent",color:pTab===key?"#fff":TXT2,border:"1px solid "+(pTab===key?BRAND:BOR),borderRadius:6,padding:"5px 12px",fontSize:12,fontWeight:pTab===key?600:400,cursor:"pointer"}} onClick={()=>setPTab(key)}>{label}</button>)}
+        </div>
+        {pTab==="Info"&&<div style={G2}><div><SH t="의뢰 정보"/><IR label="의뢰수신일" val={fmtDate(p.referralDate)}/><IR label="진행 현황" val={p.referralProgress}/><IR label="예약 현황" val={p.appointmentStatus}/><SH t="연락처"/><IR label="전화번호" val={p.phone}/><IR label="SNS" val={p.sns}/><IR label="이메일" val={p.email}/></div><div><SH t="진단 및 진료"/><IR label="진단명" val={p.diagnosis}/><IR label="진료과" val={p.department}/><IR label="Treatment" val={p.treatmentTag}/><SH t="여권 & 비자"/><IR label="Passport No." val={p.passportNo}/><IR label="Visa Status" val={p.visaStatus}/><IR label="Visa Expiry" val={fmtDate(p.visaExpiry)}/></div></div>}
+        {pTab==="Comms"&&<div>
+          <div style={{display:"flex",gap:8,marginBottom:12}}>
+            <select style={{...sel,width:165}} value={commChan} onChange={e=>setCommChan(e.target.value)}>{COMM_CHANNELS.map(x=><option key={x}>{x}</option>)}</select>
+            <input style={{...inp,flex:1}} placeholder="메시지 입력..." value={commText} onChange={e=>setCommText(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addComm(p.id)}/>
+            <Btn onClick={()=>addComm(p.id)}>저장</Btn>
+          </div>
+          {pComms.map(c=><div key={c.id} style={{display:"flex",gap:10,padding:"9px 0",borderBottom:"1px solid "+BOR}}><Tag>{c.channel}</Tag><div style={{flex:1}}><div style={{fontSize:13}}>{c.text}</div><div style={{fontSize:11,color:TXT2,marginTop:2}}>{fmtDT(c.createdAt)}</div></div></div>)}
+          {!pComms.length&&<div style={{color:TXT3,fontSize:13}}>커뮤니케이션 내역이 없습니다.</div>}
+        </div>}
+        {pTab==="Medical"&&<div><IR label="진단명" val={p.diagnosis}/><IR label="진료과" val={p.department}/><IR label="Treatment" val={p.treatmentTag}/><IR label="Surgery Date" val={fmtDate(p.surgeryDate)}/><IR label="Medical History" val={p.medicalHistory}/></div>}
+        {pTab==="Travel"&&<div style={G2}><div><SH t="항공편"/><IR label="Arrival" val={fmtDate(p.arrivalDate)}/><IR label="Departure" val={fmtDate(p.departureDate)}/><IR label="Arrival Flight" val={p.flightArr}/></div><div><SH t="호텔 & 이동"/><IR label="Hotel" val={p.hotelName}/><IR label="Check-in" val={fmtDate(p.hotelCheckIn)}/><IR label="Airport Transfer" val={p.airportTransfer}/></div></div>}
+        {pTab==="Docs"&&<div>
+          <input ref={fileRef} type="file" style={{display:"none"}} onChange={e=>{if(e.target.files[0]){const f=e.target.files[0];const r=new FileReader();r.onload=async ev=>{await saveD([...docs,{id:uid(),patientId:p.id,name:f.name,size:f.size,data:ev.target.result,uploadedAt:new Date().toISOString()}]);toast_("업로드 완료.");};r.readAsDataURL(f);}}}/>
+          <Btn onClick={()=>fileRef.current.click()} style={{marginBottom:12,fontSize:12}}>📎 파일 업로드</Btn>
+          {pDocs.map(d=><div key={d.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:"1px solid "+BOR}}><div><div style={{fontSize:13,fontWeight:500}}>{d.name}</div><div style={{fontSize:11,color:TXT2}}>{(d.size/1024).toFixed(1)} KB</div></div><div style={{display:"flex",gap:6}}><a href={d.data} download={d.name} style={{background:BRAND_L,color:BRAND,border:"1px solid "+BRAND_M,borderRadius:6,padding:"4px 10px",fontSize:11,fontWeight:600,textDecoration:"none"}}>다운로드</a><BtnSm v="danger" onClick={async()=>{await saveD(docs.filter(x=>x.id!==d.id));toast_("삭제.");}}>삭제</BtnSm></div></div>)}
+          {!pDocs.length&&<div style={{color:TXT3,fontSize:13}}>업로드된 파일이 없습니다.</div>}
+        </div>}
+        {pTab==="Finance"&&<div>
+          <Btn onClick={()=>{setInvF({...emptyInv,patientId:p.id});setInvModal("new");}} style={{marginBottom:12,fontSize:12}}>+ 청구서 추가</Btn>
+          {pInvs.map(inv=><div key={inv.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:"1px solid "+BOR}}><div><div style={{fontSize:13,fontWeight:600}}>Invoice #{inv.id.slice(-6).toUpperCase()}</div></div><div style={{display:"flex",gap:7,alignItems:"center"}}><span style={{fontWeight:700,color:"#059669"}}>{"$"+(inv.total||0).toLocaleString()}</span><Pill color={INV_C[inv.status]||"#64748b"}>{inv.status}</Pill><BtnSm v="primary" onClick={()=>{setInvF(inv);setInvModal(inv.id);}}>편집</BtnSm></div></div>)}
+          {!pInvs.length&&<div style={{color:TXT3,fontSize:13}}>청구서가 없습니다.</div>}
+        </div>}
+        {pTab==="Aftercare"&&<div>
+          <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>
+            {AFTERCARE_SCHEDULE.map(m=><Btn key={m} v={pAC.find(a=>a.milestone===m)?"success":"outline"} onClick={()=>!pAC.find(a=>a.milestone===m)&&addAftercare(p.id,m)}>{pAC.find(a=>a.milestone===m)?"✓ ":""}{m}</Btn>)}
+          </div>
+          {pAC.map(a=><div key={a.id} style={{display:"flex",justifyContent:"space-between",padding:"9px 0",borderBottom:"1px solid "+BOR}}><span style={{fontSize:13}}>{a.milestone} follow-up</span><select style={{...sel,width:145}} value={a.status} onChange={async e=>{await saveAC(aftercare.map(x=>x.id===a.id?{...x,status:e.target.value}:x));}}>{["Pending","Contacted","Completed","No Response"].map(x=><option key={x}>{x}</option>)}</select></div>)}
+        </div>}
+      </Card>
+    );
+  }
+
+  function renderImportModal() {
+    const FIELD_LABELS={name:"환자명",phone:"전화번호",sns:"SNS",dob:"생년월일",age:"나이",gender:"성별",referralDate:"의뢰수신일",diagnosis:"진단명",department:"진료과",hospitalName:"선택병원",status:"단계"};
+    const validRows=importPreview.filter(row=>importCols.name&&(row[importCols.name]||"").trim());
+    return (
+      <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2000,padding:16}}>
+        <div style={{background:SURF,borderRadius:14,width:"100%",maxWidth:700,maxHeight:"90vh",overflow:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
+          <div style={{padding:"18px 22px",borderBottom:"1px solid "+BOR,display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,background:SURF}}>
+            <div style={{fontSize:15,fontWeight:700}}>CSV 파일 임포트</div>
+            <BtnSm v="danger" onClick={()=>{setShowImport(false);setImportStep(1);setImportPreview([]);}}>✕ 닫기</BtnSm>
+          </div>
+          <div style={{padding:22}}>
+            {importStep===1&&(
+              <div style={{textAlign:"center",padding:"32px 16px"}}>
+                <div style={{fontSize:44,marginBottom:14}}>📂</div>
+                <div style={{fontSize:15,fontWeight:600,marginBottom:22}}>CSV 파일 업로드</div>
+                <input ref={importRef} type="file" accept=".csv,.txt" style={{display:"block",margin:"0 auto 16px",fontSize:13}} onChange={e=>{if(e.target.files&&e.target.files[0])handleImportFile();}}/>
+                <div style={{fontSize:12,color:TXT3}}>Excel → 파일 → 다른 이름으로 저장 → CSV UTF-8</div>
+              </div>
+            )}
+            {importStep===2&&(
+              <div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:18}}>
+                  {importHeaders.map(h=>(
+                    <div key={h} style={{background:BG,borderRadius:8,padding:"9px 11px",border:"1px solid "+BOR}}>
+                      <div style={{fontSize:11,fontWeight:600,color:TXT2,marginBottom:5}}>열: <span style={{color:TXT}}>{h}</span></div>
+                      <select style={{...sel,fontSize:12,padding:"5px 9px"}} value={Object.entries(importCols).find(([,v])=>v===h)?.[0]||""} onChange={e=>{const nm={...importCols};Object.keys(nm).forEach(k=>{if(nm[k]===h)delete nm[k];});if(e.target.value)nm[e.target.value]=h;setImportCols(nm);}}>
+                        <option value="">— 건너뜀 —</option>
+                        {Object.keys(FIELD_LABELS).map(f=><option key={f} value={f}>{FIELD_LABELS[f]}</option>)}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+                <div style={{background:BRAND_L,border:"1px solid "+BRAND_M,borderRadius:9,padding:"12px 16px",marginBottom:16}}>
+                  <div style={{fontWeight:700,color:BRAND,marginBottom:6}}>임포트 요약</div>
+                  <div><span style={{fontWeight:700,fontSize:18}}>{validRows.length}</span> 명 임포트 예정</div>
+                </div>
+                <div style={{display:"flex",gap:9}}>
+                  <Btn onClick={doImport}>{validRows.length+"명 임포트"}</Btn>
+                  <Btn v="outline" onClick={()=>{setImportStep(1);setImportPreview([]);}}>다른 파일</Btn>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
-      {toast&&<div style={S.toast(toast.type)}>{toast.type==="error"?"⚠️":"✅"} {toast.msg}</div>}
+    );
+  }
+
+  function renderInvModal() {
+    if(!invModal) return null;
+    const total=(invF.items||[]).reduce((s,i)=>s+(Number(i.qty)||0)*(Number(i.price)||0),0);
+    return (
+      <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000}}>
+        <Card p={22} style={{width:510,maxHeight:"88vh",overflow:"auto"}}>
+          <div style={{fontSize:14,fontWeight:700,marginBottom:16}}>{invModal==="new"?"새 청구서":"청구서 편집"}</div>
+          <FG label="환자"><select style={sel} value={invF.patientId} onChange={e=>setInvF(f=>({...f,patientId:e.target.value}))}><option value="">선택</option>{patients.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></FG>
+          <div style={G2}>
+            <FG label="상태"><select style={sel} value={invF.status} onChange={e=>setInvF(f=>({...f,status:e.target.value}))}>{INV_ST.map(x=><option key={x}>{x}</option>)}</select></FG>
+            <FG label="납부 기한"><input style={inp} type="date" value={invF.dueDate||""} onChange={e=>setInvF(f=>({...f,dueDate:e.target.value}))}/></FG>
+          </div>
+          {invF.items.map((item,i)=>(
+            <div key={i} style={{display:"flex",gap:7,marginBottom:7,alignItems:"center"}}>
+              <input style={{...inp,flex:2}} placeholder="내용" value={item.desc} onChange={e=>{const its=[...invF.items];its[i]={...its[i],desc:e.target.value};setInvF(f=>({...f,items:its}));}}/>
+              <input style={{...inp,width:54}} type="number" placeholder="수량" value={item.qty} onChange={e=>{const its=[...invF.items];its[i]={...its[i],qty:e.target.value};setInvF(f=>({...f,items:its}));}}/>
+              <input style={{...inp,width:84}} type="number" placeholder="$" value={item.price} onChange={e=>{const its=[...invF.items];its[i]={...its[i],price:e.target.value};setInvF(f=>({...f,items:its}));}}/>
+              <BtnSm v="danger" onClick={()=>setInvF(f=>({...f,items:f.items.filter((_,j)=>j!==i)}))}>✕</BtnSm>
+            </div>
+          ))}
+          <Btn v="outline" onClick={()=>setInvF(f=>({...f,items:[...f.items,{desc:"",qty:1,price:0}]}))} style={{marginBottom:12}}>+ 항목 추가</Btn>
+          <div style={{textAlign:"right",fontWeight:700,color:"#059669",fontSize:17,marginBottom:14}}>합계: ${total.toLocaleString()}</div>
+          <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}><Btn onClick={doSaveInvoice}>저장</Btn><Btn v="outline" onClick={()=>{setInvModal(null);setInvF(emptyInv);}}>취소</Btn></div>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{fontFamily:"system-ui,-apple-system,sans-serif",background:BG,minHeight:"100vh",color:TXT,display:"flex"}}>
+      <div style={{width:220,background:SIDEBAR,display:"flex",flexDirection:"column",position:"sticky",top:0,height:"100vh",flexShrink:0}}>
+        <div style={{padding:"18px 16px 14px",borderBottom:"1px solid #1e293b"}}>
+          <div style={{fontSize:14,fontWeight:700,color:"#fff"}}>Gerel Medi Tour</div>
+          <div style={{fontSize:10,color:"#64748b",marginTop:2}}>🇲🇳 → 🇰🇷 Patient Journey OS</div>
+        </div>
+        <div style={{flex:1,overflowY:"auto",padding:"6px 0"}}>
+          {TABS.map(tabKey=>{
+            const isActive=tab===tabKey;
+            const urgentCnt=tabKey==="Leads"?urgent.length:0;
+            return (
+              <button key={tabKey} onClick={()=>{setTab(tabKey);setSearch("");}} style={{display:"flex",alignItems:"center",gap:9,padding:"8px 16px",cursor:"pointer",border:"none",background:isActive?"#1e293b":"transparent",color:isActive?"#fff":"#94a3b8",fontSize:12,fontWeight:isActive?600:400,textAlign:"left",width:"100%",borderLeft:isActive?"3px solid #3b82f6":"3px solid transparent"}}>
+                <span style={{fontSize:13}}>{ICONS[tabKey]}</span>
+                <span style={{flex:1}}>{tabKey}</span>
+                {urgentCnt>0&&<span style={{background:"#ef4444",color:"#fff",borderRadius:20,padding:"1px 6px",fontSize:10,fontWeight:700}}>{urgentCnt}</span>}
+              </button>
+            );
+          })}
+        </div>
+        <div style={{padding:"10px 16px",borderTop:"1px solid #1e293b",fontSize:10,color:"#334155"}}>{hospitals.length} hospitals · {patients.length} patients</div>
+      </div>
+      <div style={{flex:1,overflow:"auto",padding:"24px 28px",minWidth:0}}>
+        <div style={{marginBottom:20}}>
+          <div style={{fontSize:20,fontWeight:700,color:TXT}}>{tab}</div>
+          <div style={{fontSize:12,color:TXT2,marginTop:2}}>{new Date().toLocaleDateString("en-US",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</div>
+        </div>
+        {renders[tab]&&renders[tab]()}
+      </div>
+      {renderInvModal()}
+      {toast&&<div style={{position:"fixed",bottom:22,right:22,background:toast.type==="err"?"#dc2626":"#059669",color:"#fff",padding:"10px 16px",borderRadius:9,fontSize:13,fontWeight:600,zIndex:9999}}>{toast.msg}</div>}
     </div>
   );
 }
