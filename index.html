@@ -599,12 +599,45 @@ function App() {
   );
 
   // ── HOSPITALS ──
+  const [showHospForm, setShowHospForm] = React.useState(false);
+  const emptyH = { name:"", city:"Seoul", tier:"Standard", specialties:[], contactName:"", contactEmail:"", contactPhone:"", basePrice:0, active:true };
+  const [hf, setHf] = React.useState(emptyH);
+
+  const addHospital = () => {
+    if(!hf.name) return toast_("병원명을 입력하세요.","err");
+    const newH = {...hf, id:"h"+uid(), specialties: hf.specialties||[] };
+    saveH([...hospitals, newH]);
+    setHf(emptyH); setShowHospForm(false); toast_(hf.name+" 추가됨!");
+  };
+
   const renderHospitals = () => {
     const filtered=hospitals.filter(h=>!search||h.name.toLowerCase().includes(search.toLowerCase()));
     return React.createElement("div",null,
       React.createElement("div",{style:{display:"flex",gap:9,marginBottom:14}},
         React.createElement("input",{style:{...inp,width:220},placeholder:"병원 검색...",value:search,onChange:e=>setSearch(e.target.value)}),
+        React.createElement(Btn,{onClick:()=>setShowHospForm(!showHospForm)},"+ 병원 추가"),
         React.createElement("span",{style:{color:TXT2,fontSize:12,alignSelf:"center",marginLeft:"auto"}},filtered.length+" hospitals")
+      ),
+      showHospForm&&React.createElement(Card,{p:18,style:{marginBottom:16,borderTop:"3px solid "+BRAND}},
+        React.createElement("div",{style:{fontSize:14,fontWeight:700,marginBottom:14}},"새 병원 추가"),
+        React.createElement("div",{style:G3},
+          React.createElement(FG,{label:"병원명 *"},React.createElement("input",{style:inp,value:hf.name,onChange:e=>setHf(h=>({...h,name:e.target.value})),placeholder:"예: 서울대학교병원"})),
+          React.createElement(FG,{label:"도시"},React.createElement("select",{style:sel,value:hf.city,onChange:e=>setHf(h=>({...h,city:e.target.value}))},
+            ["Seoul","Busan","Incheon","Daegu","Gwangju","Daejeon","Suwon","Bundang","Jeju"].map(c=>React.createElement("option",{key:c},c))
+          )),
+          React.createElement(FG,{label:"등급"},React.createElement("select",{style:sel,value:hf.tier,onChange:e=>setHf(h=>({...h,tier:e.target.value}))},
+            ["Premium","Standard","Partner"].map(t=>React.createElement("option",{key:t},t))
+          )),
+          React.createElement(FG,{label:"담당자 이름"},React.createElement("input",{style:inp,value:hf.contactName,onChange:e=>setHf(h=>({...h,contactName:e.target.value}))})),
+          React.createElement(FG,{label:"이메일"},React.createElement("input",{style:inp,value:hf.contactEmail,onChange:e=>setHf(h=>({...h,contactEmail:e.target.value}))})),
+          React.createElement(FG,{label:"전화번호"},React.createElement("input",{style:inp,value:hf.contactPhone,onChange:e=>setHf(h=>({...h,contactPhone:e.target.value}))})),
+          React.createElement(FG,{label:"기본 가격 (USD $)"},React.createElement("input",{style:inp,type:"number",value:hf.basePrice,onChange:e=>setHf(h=>({...h,basePrice:Number(e.target.value)}))})),
+          React.createElement(FG,{label:"진료과 (쉼표로 구분)"},React.createElement("input",{style:inp,value:(hf.specialties||[]).join(", "),onChange:e=>setHf(h=>({...h,specialties:e.target.value.split(",").map(s=>s.trim()).filter(Boolean)})),placeholder:"예: Cardiology, Oncology"}))
+        ),
+        React.createElement("div",{style:{display:"flex",gap:8}},
+          React.createElement(Btn,{onClick:addHospital},"저장"),
+          React.createElement(Btn,{v:"outline",onClick:()=>setShowHospForm(false)},"취소")
+        )
       ),
       React.createElement("div",{style:{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:14}},
         filtered.map(h=>{
