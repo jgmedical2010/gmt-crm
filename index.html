@@ -43,14 +43,29 @@ const TABS = ["Dashboard","Leads","Patients","Pipeline","Hospitals","Communicati
 const ICONS = { Dashboard:"▦",Leads:"◎",Patients:"◑",Pipeline:"▤",Hospitals:"✦",Communications:"◉",Travel:"▷",Finance:"◇",Reports:"▣" };
 
 const SEED_H = [
-  { id:"h1",name:"Samsung Medical Center",city:"Seoul",tier:"Premium",specialties:["Cardiology","Oncology","Neurology"],contactName:"Kim Ji-won",contactEmail:"intl@smc.kr",contactPhone:"+82-2-3410-0200",active:true,basePrice:8000 },
-  { id:"h2",name:"Asan Medical Center",city:"Seoul",tier:"Premium",specialties:["Oncology","General Surgery","Urology"],contactName:"Park Soo-yeon",contactEmail:"global@amc.kr",contactPhone:"+82-2-3010-3114",active:true,basePrice:7500 },
-  { id:"h3",name:"Severance Hospital (Yonsei)",city:"Seoul",tier:"Premium",specialties:["Cardiology","Spine","Neurology"],contactName:"Lee Hyun-ji",contactEmail:"intl@yuhs.ac",contactPhone:"+82-2-2228-5800",active:true,basePrice:7000 },
-  { id:"h4",name:"Seoul St. Mary's Hospital",city:"Seoul",tier:"Standard",specialties:["Fertility / IVF","Oncology","Orthopedics"],contactName:"Choi Min-jun",contactEmail:"global@cmcseoul.kr",contactPhone:"+82-2-2258-5745",active:true,basePrice:5500 },
-  { id:"h5",name:"Gangnam Severance",city:"Seoul",tier:"Premium",specialties:["Plastic Surgery","Dermatology","Eye Surgery"],contactName:"Shin Da-eun",contactEmail:"intl@gs.yuhs.ac",contactPhone:"+82-2-2019-3114",active:true,basePrice:6500 },
-  { id:"h6",name:"Busan Paik Hospital",city:"Busan",tier:"Standard",specialties:["Orthopedics","General Surgery","ENT"],contactName:"Jung Yoo-na",contactEmail:"intl@paik.ac.kr",contactPhone:"+82-51-890-6114",active:true,basePrice:4500 },
-  { id:"h7",name:"Wooridul Spine Hospital",city:"Seoul",tier:"Premium",specialties:["Spine","Orthopedics","Neurology"],contactName:"Oh Se-jin",contactEmail:"global@wooridul.co.kr",contactPhone:"+82-2-513-8150",active:true,basePrice:6000 },
-  { id:"h8",name:"ID Hospital Seoul",city:"Seoul",tier:"Premium",specialties:["Plastic Surgery","Eye Surgery","Dermatology"],contactName:"Han Jae-in",contactEmail:"intl@idhospital.com",contactPhone:"+82-2-3496-9785",active:true,basePrice:5500 },
+  { id:"h1", name:"분당서울대학교병원", city:"Bundang", tier:"Premium", specialties:["Cardiology","Oncology","Neurology","General Surgery"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
+  { id:"h2", name:"세종병원", city:"Seoul", tier:"Standard", specialties:["Cardiology","General Surgery"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
+  { id:"h3", name:"중앙대학교병원", city:"Seoul", tier:"Standard", specialties:["Oncology","General Surgery","Orthopedics"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
+  { id:"h4", name:"고려대학교 안암병원", city:"Seoul", tier:"Premium", specialties:["Neurology","Oncology","General Surgery"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
+  { id:"h5", name:"차의과학대학교 분당차병원", city:"Bundang", tier:"Standard", specialties:["Fertility / IVF","Oncology","Pediatrics"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
+  { id:"h6", name:"명지병원", city:"Seoul", tier:"Standard", specialties:["General Surgery","Cardiology","Orthopedics"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
+  { id:"h7", name:"순천향대학교 서울병원", city:"Seoul", tier:"Standard", specialties:["General Surgery","Oncology","Neurology"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
+  { id:"h8", name:"순천향대학교 부천병원", city:"Bucheon", tier:"Standard", specialties:["General Surgery","Cardiology","Orthopedics"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
+  { id:"h9", name:"서울아산병원", city:"Seoul", tier:"Premium", specialties:["Oncology","Cardiology","General Surgery","Liver Transplant"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
+  { id:"h10", name:"가톨릭대학교 서울성모병원", city:"Seoul", tier:"Premium", specialties:["Oncology","Fertility / IVF","Hematology"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
+  { id:"h11", name:"마리아병원", city:"Seoul", tier:"Standard", specialties:["Fertility / IVF","Obstetrics & Gynecology"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
+  { id:"h12", name:"미즈메디병원", city:"Seoul", tier:"Standard", specialties:["Fertility / IVF","Obstetrics & Gynecology"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
+  { id:"h13", name:"한양대학교병원", city:"Seoul", tier:"Premium", specialties:["Cardiology","Neurology","Oncology","Orthopedics"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
+  { id:"h14", name:"강남그랜드안과", city:"Seoul", tier:"Standard", specialties:["Eye Surgery"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
+  { id:"h15", name:"성무진안과", city:"Seoul", tier:"Standard", specialties:["Eye Surgery"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
+  { id:"h16", name:"연세세브란스병원", city:"Seoul", tier:"Premium", specialties:["Cardiology","Oncology","Neurology","Spine"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
+  { id:"h17", name:"양지병원", city:"Seoul", tier:"Standard", specialties:["General Surgery","Orthopedics","Dermatology"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
+  { id:"h18", name:"한림대학교 강남성심병원", city:"Seoul", tier:"Standard", specialties:["Cardiology","General Surgery","Neurology"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
+  { id:"h19", name:"엘리트성형외과", city:"Seoul", tier:"Standard", specialties:["Plastic Surgery","Dermatology"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
+  { id:"h20", name:"WOOA성형외과", city:"Seoul", tier:"Standard", specialties:["Plastic Surgery","Dermatology"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
+  { id:"h21", name:"이엔장성형외과", city:"Seoul", tier:"Standard", specialties:["Plastic Surgery","Dermatology"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
+  { id:"h22", name:"SNU안과", city:"Seoul", tier:"Standard", specialties:["Eye Surgery"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
+  { id:"h23", name:"트리니티여성병원", city:"Seoul", tier:"Standard", specialties:["Obstetrics & Gynecology","Fertility / IVF"], contactName:"", contactEmail:"", contactPhone:"", active:true, basePrice:0 },
 ];
 
 // Storage
