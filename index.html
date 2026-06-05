@@ -68,7 +68,7 @@ const LS = {
   get: k => { try { const v=localStorage.getItem(k); return v?JSON.parse(v):null; } catch { return null; } },
   set: (k,v) => { try { localStorage.setItem(k,JSON.stringify(v)); } catch {} }
 };
-const STORE = {h:"gmt8_h",p:"gmt8_p",l:"gmt8_l",c:"gmt8_c",inv:"gmt8_inv",ac:"gmt8_ac"};
+const STORE = {h:"gmt7_h",p:"gmt7_p",l:"gmt7_l",c:"gmt7_c",inv:"gmt7_inv",ac:"gmt7_ac"};
 
 const BG="#f8f9fc",SURF="#ffffff",SURF2="#f1f5f9",BOR="#e2e8f0",TXT="#0f172a",TXT2="#64748b",TXT3="#94a3b8",BRAND="#2563eb",BRAND_L="#eff6ff",BRAND_M="#bfdbfe",SIDEBAR="#0f172a";
 const inp={width:"100%",background:SURF,border:"1px solid "+BOR,borderRadius:8,padding:"9px 12px",color:TXT,fontSize:13,outline:"none",boxSizing:"border-box"};
